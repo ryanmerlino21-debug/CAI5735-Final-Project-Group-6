@@ -1,5 +1,5 @@
 # CAI 5735 Final Project - interactive app
-# Group members: Ryan Merlino, [MEMBER 2], [MEMBER 3]
+# Group members: Ryan Merlino, April Walter, Nikolas Platon
 # GitHub repository: https://github.com/ryanmerlino21-debug/cai5735-final-project
 
 import marimo
@@ -47,18 +47,19 @@ def _():
 def _(mo):
     mo.md(r"""
     # Can we predict who comes back to the hospital?
-    *CAI 5735 Final Project - Ryan Merlino, [MEMBER 2], [MEMBER 3]*
+    *CAI 5735 Final Project - Ryan Merlino, April Walter, Nikolas Platon*
 
     ## Research question
     > **How accurately can a diabetes patient's length of stay, number of lab tests,
     > procedures, medications and diagnoses, plus whether they were prescribed a diabetes
     > medication, predict whether they will be readmitted to the hospital?**
 
-    **The problem.** Hospitals try to prevent avoidable readmissions, which are bad for
-    patients and costly (US hospitals are financially penalised for excess readmissions).
-    If a model could flag high-risk patients before discharge, staff could focus follow-up
-    calls, medication reviews and home care on them. We test how far a few simple numbers
-    recorded *during the stay* can take us.
+    **Why this matters.** I chose this question because readmissions are hard on patients
+    and also costly for hospitals. Hospitals in the US are even penalized when too many
+    patients come back. If a model could flag high risk patients before they go home, staff
+    could focus follow up calls and medication reviews on those patients first. Which means
+    that better care could go to the people who need it most. In this project we test how far
+    a few simple numbers recorded during the stay can take us.
     """)
     return
 
@@ -90,10 +91,11 @@ def _(mo):
 def _(df, mo):
     _counts = df["readmitted"].value_counts()
     mo.md(f"""
-    The original outcome has three levels: not readmitted ({_counts['Not readmitted']}),
-    after 30 days ({_counts['After 30 days']}), within 30 days ({_counts['Within 30 days']}).
-    Because our question is *whether* a patient returns, we merge the last two into
-    **readmitted** ({_counts['After 30 days'] + _counts['Within 30 days']} stays, 40%). No values are missing.
+    The original outcome has three groups: not readmitted ({_counts['Not readmitted']}),
+    after 30 days ({_counts['After 30 days']}), and within 30 days ({_counts['Within 30 days']}).
+    Our question is about whether a patient comes back at all, so we combined the last two
+    groups into one group called readmitted ({_counts['After 30 days'] + _counts['Within 30 days']} stays, about 40%).
+    There are no missing values in this file.
     """)
     return
 
@@ -102,8 +104,8 @@ def _(df, mo):
 def _(mo):
     mo.md(r"""
     ## Explore the data
-    Pick a variable to see how its distribution differs between readmitted and
-    not-readmitted stays. The differences are small, which already hints at the result.
+    Pick a variable to see how readmitted and not readmitted stays compare. The two groups
+    look very similar, which already hints at what we found.
     """)
     return
 
@@ -139,16 +141,16 @@ def _(df, np, plt, var, y):
 def _(mo):
     mo.md(r"""
     ## Analysis process
-    1. **Split:** 75% training / 25% test (stratified, `random_state=42`). Every number below
-       comes from the 750 held-out test stays.
-    2. **Three models:** logistic regression (interpretable baseline), a depth-4 decision
-       tree, and a random forest of trees.
-    3. **Evaluate** each with a confusion matrix, accuracy, sensitivity (share of real
-       readmissions caught), specificity (share of non-readmissions correctly cleared), and
-       the ROC curve / AUROC.
+    First, I split the data into 75% training and 25% testing, so every result below comes
+    from 750 stays the models never saw. Then we trained three models: logistic regression
+    as a simple baseline, a decision tree with a depth of 4, and a random forest. Next, we
+    evaluated each one with a confusion matrix, accuracy, sensitivity, specificity, and the
+    ROC curve with AUROC. Sensitivity is the share of real readmissions the model catches,
+    and specificity is the share of patients who did not come back that the model correctly
+    leaves alone. Finally, we compared the models and chose a threshold.
 
-    Use the controls to explore a model and threshold. The **threshold** is the predicted
-    probability above which we label a patient "readmitted".
+    You can use the controls below to explore each model. The threshold is the predicted
+    probability where a patient gets labeled as readmitted.
     """)
     return
 
@@ -209,15 +211,15 @@ def _(aucs, mo):
     | Decision tree | 0.604 | 0.300 | 0.807 | {aucs['Decision tree']:.3f} |
     | Random forest | 0.613 | 0.213 | 0.880 | {aucs['Random forest']:.3f} |
 
-    **Which is best?** The **random forest** has the top AUROC and accuracy, so it is our
-    pick, but the three models are nearly tied (AUROC about 0.59). Logistic regression is
-    a reasonable alternative because it is simpler to explain. At 0.5 every model has very
-    low sensitivity: they mostly guess "not readmitted", and 60% of stays are not readmitted,
-    so 60% accuracy is the baseline to beat.
+    **Which model is best?** I chose the random forest because it has the highest AUROC and
+    accuracy. The three models are very close though, with AUROC around 0.59. Logistic
+    regression is also a good choice because it is simpler and easier to explain. At a
+    threshold of 0.5 every model has very low sensitivity because they mostly guess not
+    readmitted. About 60% of stays are not readmitted, so 60% accuracy is the number to beat.
 
-    **Threshold.** Missing a patient who comes back is worse than an unnecessary follow-up
-    call, so we want higher sensitivity. For the random forest, **0.40** maximises Youden's J
-    (sensitivity 0.66, specificity 0.48). Drag the slider to see the trade-off: below about
+    **Threshold.** Missing a patient who comes back is worse than making an extra follow up
+    call, so I want higher sensitivity. For the random forest, 0.40 gave the best balance
+    (sensitivity 0.66 and specificity 0.48). Try the slider to see the trade off. Below about
     0.35 almost every patient is flagged, and above 0.5 almost nobody is.
     """)
     return
@@ -227,7 +229,7 @@ def _(aucs, mo):
 def _(mo):
     mo.md(r"""
     ## Try it: classify a new patient
-    Enter a patient's stay details and see each model's predicted chance of readmission.
+    Enter the details of a patient's stay and see each model's predicted chance of readmission.
     """)
     return
 
@@ -268,20 +270,22 @@ def _(X, mo, models, pd, s_days, s_diag, s_dm, s_lab, s_med, s_proc, thr):
 def _(mo):
     mo.md(r"""
     ## Results and conclusion
-    **Answer:** *not very accurately.* With these six variables, our best model (random
-    forest) reaches an **AUROC of about 0.59**, where 0.5 is a coin flip and 1.0 is perfect.
-    Its 61% accuracy at threshold 0.5 barely beats always predicting "not readmitted" (60%).
-    Lowering the threshold to 0.40 catches about two-thirds of readmissions, but only by
-    wrongly flagging about half of the patients who do not return.
+    **Answer.** These variables do not predict readmission very accurately. Our best model,
+    the random forest, reached an AUROC of about 0.59. A score of 0.5 is a coin flip and 1.0
+    is perfect, so this is only slightly better than guessing. Its accuracy of 61% at a
+    threshold of 0.5 barely beats always guessing not readmitted, which is 60%. When I lowered
+    the threshold to 0.40, the model caught about two thirds of readmissions, but it also
+    flagged about half of the patients who did not come back.
 
-    **What this means.** Counts recorded during the stay (days, tests, medications) are only
-    weakly related to coming back. Better predictors probably include prior admissions,
-    discharge destination and lab results like HbA1c, none of which are in this simplified
-    file. As it stands, the model could be a rough screening aid, but it should not drive
-    decisions about individual patients.
+    **What this means.** The numbers recorded during a stay, like days in the hospital, tests,
+    and medications, are only weakly related to coming back. Things like prior admissions,
+    where the patient goes after discharge, and lab results such as HbA1c would probably help
+    more, but they are not in this simplified file. Because of that, the model could only be a
+    rough screening tool, and it should not be used alone to make decisions about a patient.
 
-    **Limitations.** A 3,000-row sample, one random split (results vary by about
-    +/- 0.02 AUROC), no tuning of hyperparameters, and data from 1999-2008.
+    **Limitations.** The sample is only 3,000 stays and we used one random split, so the
+    AUROC could change by about 0.02 with a different split. We also did not tune the models,
+    and the data is from 1999 to 2008.
     """)
     return
 

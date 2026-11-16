@@ -1,5 +1,5 @@
 # CAI 5735 Final Project - analysis notebook
-# Group members: Ryan Merlino, [MEMBER 2], [MEMBER 3]
+# Group members: Ryan Merlino, April Walter, Nikolas Platon
 # GitHub repository: https://github.com/ryanmerlino21-debug/cai5735-final-project
 
 import marimo
@@ -35,7 +35,7 @@ def _(mo):
     mo.md(r"""
     # Predicting hospital readmission for patients with diabetes
 
-    **Group members:** Ryan Merlino, [MEMBER 2], [MEMBER 3]
+    **Group members:** Ryan Merlino, April Walter, Nikolas Platon
 
     ## Research question
 
@@ -44,9 +44,9 @@ def _(mo):
     > medication, predict whether they will be readmitted to the hospital?**
 
     The response is binary: **readmitted** (came back, either within or after 30 days)
-    vs **not readmitted**. Hospitals are penalised for avoidable readmissions, and a
-    readmission is bad for the patient. A model that flags high-risk patients before
-    discharge could let staff arrange follow-up care.
+    or **not readmitted**. I chose this because readmissions are hard on patients and
+    hospitals are penalized for avoidable ones. A model that flags high risk patients
+    before discharge could help staff plan follow up care.
 
     **Data source:** *Diabetes 130-US Hospitals for Years 1999-2008*, UCI Machine Learning
     Repository (Strack et al., 2014), https://doi.org/10.24432/C5230J. The course supplied
@@ -300,13 +300,14 @@ def _(best, metrics_at, np, pd, probs, y_test):
 def _(mo):
     mo.md(r"""
     ## 9. Conclusion
-    **Answer to the research question:** not very accurately. Using length of stay, lab tests,
-    procedures, medications, diagnoses and diabetes medication, the best model (random forest)
-    reaches an AUROC of about 0.59 and 61% accuracy at threshold 0.5, versus 60% accuracy for
-    always guessing "not readmitted". These in-stay counts carry only a weak signal about
-    readmission. A usable model would likely need richer information (prior admissions,
-    discharge disposition, lab results such as HbA1c). The models are at most a rough screening
-    aid and should not drive individual decisions. See `app.py` for the interactive version.
+    **Answer to the research question:** these variables do not predict readmission very
+    accurately. The best model, the random forest, reached an AUROC of about 0.59 and 61%
+    accuracy at a threshold of 0.5, while always guessing not readmitted gives 60%. The
+    counts recorded during the stay only have a weak link to readmission. A better model
+    would probably need more information, like prior admissions, discharge destination, and
+    lab results such as HbA1c. For now the models are only a rough screening tool and should
+    not be used alone to make decisions about a patient. The app (`app.py`) has the
+    interactive version.
     """)
     return
 

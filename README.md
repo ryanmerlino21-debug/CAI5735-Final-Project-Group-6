@@ -2,7 +2,7 @@
 
 CAI 5735 Final Project
 
-**Group members:** Ryan Merlino, [MEMBER 2], [MEMBER 3]
+**Group members:** Ryan Merlino, April Walter, Nikolas Platon
 
 **Research question:** How accurately can a diabetes patient's length of stay, number of lab tests, procedures, medications and diagnoses, plus whether they were prescribed a diabetes medication, predict whether they will be readmitted?
 
