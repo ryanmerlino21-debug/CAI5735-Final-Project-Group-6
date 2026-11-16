@@ -16,10 +16,11 @@
 
 | File | What it is |
 |---|---|
-| `notebook.py` | Marimo analysis notebook (split, 3 models, confusion matrices, ROC/AUROC, new-patient demo, threshold) |
-| `app.py` | Marimo app source (the interactive page) |
-| `docs/` | Exported app served by GitHub Pages |
-| `data/`, `public/` | The CSV (`public/` copy is used by the browser app) |
+| `notebook.py` | Marimo analysis notebook (split, 3 models, confusion matrices, ROC/AUROC, new patient demo, threshold) |
+| `docs/index.html` | The web app (plain HTML, CSS and JavaScript) served by GitHub Pages |
+| `docs/data.json` | Model results and parameters the app reads |
+| `scripts/export_results.py` | Trains the same models as the notebook and writes `docs/data.json` |
+| `data/diabetes_130.csv` | The dataset |
 
 ## Running the notebook
 
@@ -28,18 +29,16 @@ git clone https://github.com/ryanmerlino21-debug/CAI5735-Final-Project-Group-6.g
 cd CAI5735-Final-Project-Group-6
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-marimo edit notebook.py      # edit/run the analysis
-marimo run app.py            # run the app locally
+marimo edit notebook.py
 ```
 
-## Updating the published app
-
-After editing `app.py`, rebuild and push:
+## Running the app locally
 
 ```bash
-marimo export html-wasm app.py -o docs --mode run
-git add -A && git commit -m "Update app" && git push
+python3 -m http.server --directory docs
 ```
+
+Then open http://localhost:8000. If you change the models, rerun `python scripts/export_results.py` to refresh `docs/data.json`.
 
 ## Key result
 
