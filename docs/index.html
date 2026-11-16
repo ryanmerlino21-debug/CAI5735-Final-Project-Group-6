@@ -176,6 +176,8 @@
 </footer>
 
 <script>
+// clear anything cached from the earlier version of this page
+if(navigator.serviceWorker)navigator.serviceWorker.getRegistrations().then(r=>r.forEach(x=>x.unregister()));
 const LABELS = {time_in_hospital:"Days in hospital",num_lab_procedures:"Lab tests",num_procedures:"Procedures",
   num_medications:"Medications",number_diagnoses:"Diagnoses",diabetes_med:"Diabetes medication"};
 const MODELS = ["Logistic regression","Decision tree","Random forest"];

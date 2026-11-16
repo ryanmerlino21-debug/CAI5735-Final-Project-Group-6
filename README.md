@@ -10,7 +10,9 @@
 
 **Interactive app:** https://ryanmerlino21-debug.github.io/CAI5735-Final-Project-Group-6/
 
-**Marimo notebook:** https://github.com/ryanmerlino21-debug/CAI5735-Final-Project-Group-6/blob/main/notebook.py (see "Running the notebook" below to open it in Marimo)
+**Marimo notebook (rendered, with outputs):** https://ryanmerlino21-debug.github.io/CAI5735-Final-Project-Group-6/notebook.html
+
+**Notebook source code:** https://github.com/ryanmerlino21-debug/CAI5735-Final-Project-Group-6/blob/main/notebook.py (see "Running the notebook" below to open it in Marimo)
 
 **Dataset:** Diabetes 130-US Hospitals for Years 1999-2008 (UCI Machine Learning Repository, Strack et al., 2014, https://doi.org/10.24432/C5230J). A simplified 3,000-row copy is in `data/diabetes_130.csv`.
 
@@ -20,6 +22,7 @@
 |---|---|
 | `notebook.py` | Marimo analysis notebook (split, 3 models, confusion matrices, ROC/AUROC, new patient demo, threshold) |
 | `docs/index.html` | The web app (plain HTML, CSS and JavaScript) served by GitHub Pages |
+| `docs/notebook.html` | The notebook exported with its outputs, so it can be read in a browser |
 | `docs/data.json` | Model results and parameters the app reads |
 | `scripts/export_results.py` | Trains the same models as the notebook and writes `docs/data.json` |
 | `data/diabetes_130.csv` | The dataset |
@@ -33,6 +36,8 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 marimo edit notebook.py
 ```
+
+To refresh the rendered copy after editing: `marimo export html notebook.py -o docs/notebook.html`.
 
 ## Running the app locally
 
