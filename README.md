@@ -10,6 +10,8 @@
 
 **Interactive app:** https://ryanmerlino21-debug.github.io/CAI5735-Final-Project-Group-6/
 
+**Marimo notebook:** https://github.com/ryanmerlino21-debug/CAI5735-Final-Project-Group-6/blob/main/notebook.py (see "Running the notebook" below to open it in Marimo)
+
 **Dataset:** Diabetes 130-US Hospitals for Years 1999-2008 (UCI Machine Learning Repository, Strack et al., 2014, https://doi.org/10.24432/C5230J). A simplified 3,000-row copy is in `data/diabetes_130.csv`.
 
 ## Files
