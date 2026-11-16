@@ -1,12 +1,14 @@
-# Predicting Hospital Readmission in Patients with Diabetes
+# CAI5735 Final Project - Group 6
 
-CAI 5735 Final Project
+## Predicting Hospital Readmission in Patients with Diabetes
+
+
 
 **Group members:** Ryan Merlino, April Walter, Nikolas Platon
 
 **Research question:** How accurately can a diabetes patient's length of stay, number of lab tests, procedures, medications and diagnoses, plus whether they were prescribed a diabetes medication, predict whether they will be readmitted?
 
-**Interactive app:** https://ryanmerlino21-debug.github.io/cai5735-final-project/
+**Interactive app:** https://ryanmerlino21-debug.github.io/CAI5735-Final-Project-Group-6/
 
 **Dataset:** Diabetes 130-US Hospitals for Years 1999-2008 (UCI Machine Learning Repository, Strack et al., 2014, https://doi.org/10.24432/C5230J). A simplified 3,000-row copy is in `data/diabetes_130.csv`.
 
@@ -22,8 +24,8 @@ CAI 5735 Final Project
 ## Running the notebook
 
 ```bash
-git clone https://github.com/ryanmerlino21-debug/cai5735-final-project.git
-cd cai5735-final-project
+git clone https://github.com/ryanmerlino21-debug/CAI5735-Final-Project-Group-6.git
+cd CAI5735-Final-Project-Group-6
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 marimo edit notebook.py      # edit/run the analysis

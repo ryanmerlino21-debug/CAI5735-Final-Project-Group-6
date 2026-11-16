@@ -1,6 +1,6 @@
 # CAI 5735 Final Project - interactive app
 # Group members: Ryan Merlino, April Walter, Nikolas Platon
-# GitHub repository: https://github.com/ryanmerlino21-debug/cai5735-final-project
+# GitHub repository: https://github.com/ryanmerlino21-debug/CAI5735-Final-Project-Group-6
 
 import marimo
 
