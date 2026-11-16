@@ -158,7 +158,7 @@ const PAGES = {};
 /* ---------- 1. overview ---------- */
 PAGES.overview = () => {
   const p = h("<div></div>");
-  p.append(titlebar("Overview", "The question, why it matters, and what we found."));
+  p.append(titlebar("Research question", "The question we asked, the problem it addresses, why it matters, and what we found."));
   p.append(h(`<div class="callout"><h4>Start here: what this app is for and where to begin</h4>
     <div>We asked whether a few numbers recorded during a hospital stay can predict if a patient with diabetes comes back to the hospital. This app walks through how we answered that.</div>
     <ol>
@@ -228,6 +228,7 @@ PAGES.dataset = () => {
   p.append(titlebar("Dataset", "Where the data came from, what is in it, and how we set up the outcome."));
   p.append(section("Source",
     para(`We used the <i>Diabetes 130-US Hospitals for Years 1999-2008</i> dataset from the UCI Machine Learning Repository (Strack et al., 2014, <i>Impact of HbA1c measurement on hospital readmission rates</i>, BioMed Research International, <a href="https://doi.org/10.24432/C5230J">doi.org/10.24432/C5230J</a>). Our copy is a simplified sample of ${D.readmitted.length.toLocaleString()} hospital stays from 130 US hospitals between 1999 and 2008. It was provided for the course. Each row is one stay, and there are no missing values.`)));
+  p.append(section("Data at a glance", kpis([["Rows", D.readmitted.length.toLocaleString(), "hospital stays"], ["Columns", "10", "7 used for analysis"], ["Missing values", "0", "nothing to fill in"], ["Predictors", "6", "from the stay"], ["Readmitted", pct(mean(D.readmitted), 0), "of stays"], ["Years", "1999-2008", "130 US hospitals"]])));
   p.append(section("Columns we used", dyn(() => {
     const desc = { time_in_hospital: "Days in the hospital", num_lab_procedures: "Lab tests during the stay", num_procedures: "Procedures other than lab tests", num_medications: "Different medications given", number_diagnoses: "Diagnoses recorded for the stay", diabetes_med: "Prescribed a diabetes medication (1 = yes)" };
     const rows = FEATS.map(f => { const v = D.data[f]; return `<tr><td><code>${f}</code></td><td>Predictor</td><td>${desc[f]}</td><td>${spark(v, css("--violet"))}</td><td class="n">${Math.min(...v)} / ${quant(v, .5)} / ${Math.max(...v)}</td><td class="n">${mean(v).toFixed(2)}</td></tr>`; }).join("");
@@ -280,10 +281,11 @@ PAGES.dataset = () => {
 };
 
 /* ---------- 3. explore ---------- */
-function quantBins(v, k) {
+function quantInfo(v, k) {
   const vals = D.data[v], ups = [...new Set(Array.from({ length: k }, (_, i) => Math.round(quant(vals, (i + 1) / k))))].sort((a, b) => a - b);
-  return vals.map(x => ups.findIndex(u => x <= u));
+  return { idx: vals.map(x => ups.findIndex(u => x <= u)), labels: ups.map((u, j) => j === 0 ? `≤${u}` : ups[j - 1] + 1 === u ? `${u}` : `${ups[j - 1] + 1}-${u}`) };
 }
+const quantBins = (v, k) => quantInfo(v, k).idx;
 PAGES.explore = () => {
   const p = h("<div></div>");
   p.append(titlebar("Explore the data", "Look at every variable before modeling. Pick a variable, then switch between chart types to see it from different angles."));
@@ -321,7 +323,7 @@ PAGES.explore = () => {
     card({
       title: "Readmission rate by value", height: 330, kind: "both",
       toggles: [{ key: "v", label: "Variable", type: "select", value: "number_diagnoses", options: VAR_OPTS },
-        { key: "t", label: "Show as", value: "bar", options: [["bar", "Bars"], ["line", "Line"], ["area", "Area"], ["strip", "Heat strip"]] },
+        { key: "t", label: "Show as", value: "bar", options: [["bar", "Bars"], ["line", "Line"], ["area", "Area"], ["strip", "Heat strip"], ["combo", "Count + rate"], ["stack", "Stacked share"]] },
         { key: "d", label: "Detail", value: "fine", options: [["fine", "Each value"], ["coarse", "5 groups"]] }],
       draw(st, cv, el) {
         const { labels, idx } = makeBins(st.v, st.d), y = D.readmitted, n = Array(labels.length).fill(0), r = Array(labels.length).fill(0);
@@ -333,6 +335,8 @@ PAGES.explore = () => {
           return;
         }
         showCanvas(el, true);
+        if (st.t === "combo") return mk(cv, { type: "bar", data: { labels, datasets: [{ type: "bar", label: "Stays (count)", data: n, backgroundColor: css("--violet") + "66", borderRadius: 4, yAxisID: "y" }, { type: "line", label: "Readmission rate", data: rate, borderColor: css("--coral"), backgroundColor: css("--coral"), pointRadius: 4, tension: .25, yAxisID: "y2" }] }, options: { scales: { x: { title: { display: true, text: LBL[st.v] }, grid: { display: false } }, y: { beginAtZero: true, title: { display: true, text: "Stays" } }, y2: { position: "right", min: 0, max: 100, grid: { drawOnChartArea: false }, title: { display: true, text: "% readmitted" } } } } });
+        if (st.t === "stack") return mk(cv, { type: "bar", data: { labels, datasets: [{ label: "Not readmitted", data: rate.map(v => v === null ? null : 100 - v), backgroundColor: css("--teal") }, { label: "Readmitted", data: rate, backgroundColor: css("--coral") }] }, options: { scales: { x: { stacked: true, title: { display: true, text: LBL[st.v] }, grid: { display: false } }, y: { stacked: true, max: 100, title: { display: true, text: "% of stays" } } } } });
         const ds = [{ type: st.t === "bar" ? "bar" : "line", label: "Readmission rate", data: rate, backgroundColor: st.t === "bar" ? css("--coral") + "cc" : css("--coral") + "33", fill: st.t === "area", borderColor: css("--coral"), tension: .25, pointRadius: 4, borderRadius: 5 },
           { type: "line", label: `Overall (${all.toFixed(0)}%)`, data: labels.map(() => all), borderColor: css("--ink"), borderDash: [6, 5], pointRadius: 0, borderWidth: 1.5 }];
         mk(cv, { type: "bar", data: { labels, datasets: ds }, options: { scales: { y: { min: 0, title: { display: true, text: "% readmitted" } }, x: { title: { display: true, text: LBL[st.v] }, grid: { display: false } } },
@@ -353,6 +357,25 @@ PAGES.explore = () => {
         mk(cv, { type: st.t, data: { labels: names, datasets: ds }, options: { scales: { y: { min: 20, max: 60, title: { display: true, text: "% readmitted" } } } } });
       },
       caption: "Each line is one variable. If readmission rose steadily with a variable, its line would climb from left to right. Most of these lines wander around the overall 40% without a clear trend."
+    })));
+  p.append(section("Two variables at once",
+    lede("This splits the stays by two variables at the same time and shows the readmission rate in every cell."),
+    card({
+      title: "Readmission rate by two variables", height: 400, kind: "both",
+      toggles: [{ key: "x", label: "Across", type: "select", value: "number_diagnoses", options: VAR_OPTS.slice(0, 5) }, { key: "y", label: "Down", type: "select", value: "time_in_hospital", options: VAR_OPTS.slice(0, 5) },
+        { key: "k", label: "Groups", value: "4", options: [["3", "3"], ["4", "4"], ["5", "5"]] }, { key: "t", label: "Show as", value: "heat", options: [["heat", "Heatmap"], ["bubble", "Bubbles"]] }],
+      draw(st, cv, el) {
+        const k = +st.k, X = quantInfo(st.x, k), Y = quantInfo(st.y, k), nx = X.labels.length, ny = Y.labels.length, n = Array.from({ length: ny }, () => Array(nx).fill(0)), r = Array.from({ length: ny }, () => Array(nx).fill(0));
+        D.readmitted.forEach((v, i) => { n[Y.idx[i]][X.idx[i]]++; r[Y.idx[i]][X.idx[i]] += v; }); const all = mean(D.readmitted) * 100;
+        if (st.t === "heat") {
+          showCanvas(el, false).innerHTML = `<div class="scroll"><table class="heat"><tr><th>${LBL[st.y]} ↓ / ${LBL[st.x]} →</th>${X.labels.map(l => `<th>${l}</th>`).join("")}</tr>${Y.labels.map((yl, j) => `<tr><th style="text-align:right">${yl}</th>${X.labels.map((_, i) => { const q = n[j][i] ? r[j][i] / n[j][i] * 100 : null, c = q >= all ? css("--coral") : css("--teal"), a = q === null ? 0 : Math.min(95, 15 + Math.abs(q - all) * 4); return `<td style="background:color-mix(in srgb,${c} ${Math.round(a)}%,transparent)" title="n = ${n[j][i]}">${q === null ? "-" : q.toFixed(0) + "%"}<br><small style="opacity:.65">n=${n[j][i]}</small></td>`; }).join("")}</tr>`).join("")}</table></div>`;
+          return;
+        }
+        showCanvas(el, true); const pts = [];
+        for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) if (n[j][i]) pts.push({ x: i, y: j, r: Math.max(4, Math.sqrt(n[j][i]) * 1.1), q: r[j][i] / n[j][i] * 100, n: n[j][i] });
+        mk(cv, { type: "bubble", data: { datasets: [{ data: pts, backgroundColor: pts.map(p => (p.q >= all ? css("--coral") : css("--teal")) + "bb") }] }, options: { plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.raw.q.toFixed(0)}% readmitted (n = ${c.raw.n})` } } }, scales: { x: { min: -.6, max: nx - .4, title: { display: true, text: LBL[st.x] }, ticks: { stepSize: 1, callback: v => X.labels[v] ?? "" } }, y: { min: -.6, max: ny - .4, title: { display: true, text: LBL[st.y] }, ticks: { stepSize: 1, callback: v => Y.labels[v] ?? "" } } } } });
+      },
+      caption: st => st.t === "heat" ? "Each cell is a group of stays with both values. Coral cells have a readmission rate above the overall rate and teal cells are below it. Darker means farther from the overall rate. Cells with a small n can be misleading." : "Each bubble is a group of stays. Bigger bubbles have more stays. Coral bubbles have a readmission rate above the overall rate and teal bubbles are below it."
     })));
   p.append(section("Age, gender and admission type (not used in our models)",
     lede("We left these out on purpose, but they give useful context about who is in the data."),
@@ -412,46 +435,65 @@ PAGES.explore = () => {
   return p;
 };
 
+function treeSVG() {
+  const T = D.tree, W = 128, H = 78; let leaf = 0, maxD = 0; const pos = {};
+  const walk = (n, d) => { maxD = Math.max(maxD, d); if (T.l[n] === -1) { pos[n] = { x: leaf++ * W + W / 2, d }; return; } walk(T.l[n], d + 1); walk(T.r[n], d + 1); pos[n] = { x: (pos[T.l[n]].x + pos[T.r[n]].x) / 2, d }; };
+  walk(0, 0);
+  const wd = leaf * W, ht = (maxD + 1) * H + 20, col = p => `color-mix(in srgb,${p >= .4 ? css("--coral") : css("--teal")} ${Math.min(85, 20 + Math.abs(p - .4) * 400)}%,${css("--paper")})`;
+  let edges = "", nodes = "";
+  T.l.forEach((l, n) => { if (l === -1) return; [[l, "yes"], [T.r[n], "no"]].forEach(([c, lab]) => { edges += `<line x1="${pos[n].x}" y1="${pos[n].d * H + 44}" x2="${pos[c].x}" y2="${pos[c].d * H + 6}" stroke="${css("--line")}" stroke-width="2"/><text x="${(pos[n].x + pos[c].x) / 2 + (lab === "yes" ? -10 : 10)}" y="${(pos[n].d * H + 44 + pos[c].d * H + 6) / 2}" text-anchor="middle" style="font-size:9px">${lab}</text>`; }); });
+  T.l.forEach((l, n) => { const q = pos[n], isLeaf = l === -1, f = T.f[n], thr = T.t[n]; const cond = isLeaf ? `${pct(T.p[n], 0)} readmitted` : f === 5 ? "Diabetes med?" : `${LBL[FEATS[f]]} ≤ ${Math.floor(thr + .5)}?`; nodes += `<g><rect x="${q.x - 56}" y="${q.d * H + 6}" width="112" height="38" rx="9" fill="${col(T.p[n])}" stroke="${css("--line")}"/><text x="${q.x}" y="${q.d * H + 22}" text-anchor="middle" style="fill:${css("--ink")};font-weight:700;font-size:10.5px">${cond}</text><text x="${q.x}" y="${q.d * H + 36}" text-anchor="middle" style="font-size:9.5px">n = ${T.n[n]}${isLeaf ? "" : " · " + pct(T.p[n], 0)}</text></g>`; });
+  return `<div class="scroll"><svg viewBox="0 0 ${wd} ${ht}" width="${wd}" height="${ht}">${edges}${nodes}</svg></div>`;
+}
+
 /* ---------- 4. models ---------- */
 PAGES.models = () => {
   const p = h("<div></div>");
-  p.append(titlebar("Models", "Three classification models, each evaluated on the 750 test stays."));
+  p.append(titlebar("Analysis process: models and evaluation", "The steps we took, the three classification models, how we evaluated them on the 750 test stays, and which one we chose."));
   p.append(section("The three models",
     para("<b>First,</b> we split the data. <b>Then</b> we trained three classification models. <b>Next,</b> we evaluated each one on the test set with a confusion matrix, accuracy, sensitivity, specificity, and the ROC curve with the AUROC. <b>Finally,</b> we compared them."),
     h(`<div class="grid2" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
       <div class="card"><span class="tag">Baseline</span><h4>Logistic regression</h4><p>Combines the six variables into one score. Simple, fast and easy to explain, because each variable gets one weight. We standardized the variables first so the weights can be compared.</p></div>
       <div class="card"><span class="tag">Rules</span><h4>Decision tree</h4><p>Asks a series of yes or no questions, like "more than 6 diagnoses?". We limited it to a depth of 4 and at least 30 stays per leaf so it does not memorize the training data.</p></div>
       <div class="card"><span class="tag">Ensemble</span><h4>Random forest</h4><p>Averages 300 different trees, each trained on a random piece of the data. It can pick up more complicated patterns and is usually steadier than one tree.</p></div></div>`)));
+  p.append(dyn(() => { const best = MODELS.reduce((a, b) => ROC[a].auc > ROC[b].auc ? a : b); return `<div class="callout warn"><h4>Our decision: the ${best}</h4>It has the highest AUROC (${f3(ROC[best].auc)}) and accuracy of the three models, so we picked it. The models are very close though, so logistic regression is a fair alternative because it is simpler. We set the threshold at 0.40 (see the next tab).</div>`; }));
   p.append(settingsBar());
   p.append(dyn(() => { const c = confusion(D.probs[S.model], D.y_test, S.thr); return kpis([["Accuracy", pct(c.acc), `${c.tp + c.tn} of ${c.n} correct`], ["Sensitivity", pct(c.sens), "readmissions caught"], ["Specificity", pct(c.spec), "non-readmissions cleared"], ["Precision", pct(c.prec), "flagged who came back"], ["AUROC", f3(ROC[S.model].auc), "all thresholds"]]).outerHTML; }));
   p.append(section("Confusion matrix and curves",
     h(`<div class="grid2" id="g1"></div>`)));
   const g1 = $("#g1", p) || p.querySelector(".grid2:last-child");
   g1.append(card({
-    title: "Confusion matrix", kind: "html", toggles: [{ key: "v", label: "Show as", value: "n", options: [["n", "Counts"], ["r", "Row %"], ["w", "100 patients"]] }],
+    title: "Confusion matrix", kind: "html", toggles: [{ key: "v", label: "Show as", value: "n", options: [["n", "Counts"], ["r", "Row %"], ["w", "100 patients"], ["all", "All 3 models"]] }],
     draw(st, body) {
+      if (st.v === "all") { body.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px">${MODELS.map((m, i) => { const q = confusion(D.probs[m], D.y_test, S.thr); return `<div><b style="color:${MC(i)}">${m}</b><div class="cm" style="grid-template-columns:1fr 1fr;font-size:.7rem"><div class="cell good" style="padding:10px">${q.tn}<small>TN</small></div><div class="cell bad" style="padding:10px">${q.fp}<small>FP</small></div><div class="cell bad" style="padding:10px">${q.fn}<small>FN</small></div><div class="cell good" style="padding:10px">${q.tp}<small>TP</small></div></div><div style="font-size:.78rem;color:var(--muted);text-align:center">sens ${f3(q.sens)} · spec ${f3(q.spec)}</div></div>`; }).join("")}</div>`; return; }
       const c = confusion(D.probs[S.model], D.y_test, S.thr), P = c.tp + c.fn, N = c.tn + c.fp, f = (v, d) => st.v === "n" ? v : pct(v / d, 0);
       if (st.v === "w") { body.innerHTML = waffle([{ label: "True negative", n: c.tn, color: css("--teal") }, { label: "False positive", n: c.fp, color: css("--sun") }, { label: "False negative", n: c.fn, color: css("--coral") }, { label: "True positive", n: c.tp, color: css("--violet") }]); return; }
       body.innerHTML = `<div class="cm"><div></div><div>Predicted<br>not readmitted</div><div>Predicted<br>readmitted</div>
         <div class="lab">Actual<br>not readm.</div><div class="cell good">${f(c.tn, N)}<small>TRUE NEGATIVE</small></div><div class="cell bad">${f(c.fp, N)}<small>FALSE POSITIVE</small></div>
         <div class="lab">Actual<br>readmitted</div><div class="cell bad">${f(c.fn, P)}<small>FALSE NEGATIVE</small></div><div class="cell good">${f(c.tp, P)}<small>TRUE POSITIVE</small></div></div>`;
     },
-    caption: st => st.v === "w" ? "Each square is one out of every 100 test patients. Violet and teal squares are correct predictions. Yellow squares are false alarms and coral squares are readmissions the model missed." : "Each box counts test stays. Teal boxes are correct predictions, coral boxes are mistakes. Switch to Row % to see sensitivity (bottom right) and specificity (top left) directly."
+    caption: st => st.v === "all" ? "The same threshold applied to all three models. Top left is correct not readmitted, bottom right is correct readmitted, and the other two boxes are mistakes." : st.v === "w" ? "Each square is one out of every 100 test patients. Violet and teal squares are correct predictions. Yellow squares are false alarms and coral squares are readmissions the model missed." : "Each box counts test stays. Teal boxes are correct predictions, coral boxes are mistakes. Switch to Row % to see sensitivity (bottom right) and specificity (top left) directly."
   }));
-    g1.append(card({
-    title: "Performance curve", height: 300,
-    toggles: [{ key: "c", label: "Curve", value: "roc", options: [["roc", "ROC"], ["pr", "Precision-recall"]] }, { key: "s", label: "Models", value: "all", options: [["all", "All three"], ["sel", "Selected"]] }],
+  g1.append(card({
+    title: "Performance curve", height: 320,
+    toggles: [{ key: "c", label: "Curve", value: "roc", options: [["roc", "ROC"], ["pr", "Precision-recall"], ["gain", "Gain"], ["lift", "Lift"], ["cal", "Calibration"]] }, { key: "s", label: "Models", value: "all", options: [["all", "All three"], ["sel", "Selected"]] }],
     draw(st, cv) {
-      const key = st.c, base = sum(D.y_test) / D.y_test.length;
-      const ds = MODELS.map((m, i) => ({ m, i })).filter(o => st.s === "all" || o.m === S.model).map(({ m, i }) => ({ label: `${m} (${key === "roc" ? "AUROC " + f3(ROC[m].auc) : "AP " + f3(PR[m].ap)})`, data: key === "roc" ? ROC[m].roc : PR[m].pr, showLine: true, pointRadius: 0, borderColor: MC(i) + (m === S.model ? "" : "99"), borderWidth: m === S.model ? 3 : 1.4 }));
-      ds.push({ label: key === "roc" ? "Coin flip" : `Always guess yes (${pct(base, 0)})`, data: key === "roc" ? [{ x: 0, y: 0 }, { x: 1, y: 1 }] : [{ x: 0, y: base }, { x: 1, y: base }], showLine: true, pointRadius: 0, borderDash: [5, 5], borderColor: css("--muted"), borderWidth: 1 });
-      const c = confusion(D.probs[S.model], D.y_test, S.thr);
-      ds.push({ label: "Current threshold", data: [key === "roc" ? { x: 1 - c.spec, y: c.sens } : { x: c.sens, y: c.prec }], pointRadius: 7, backgroundColor: css("--ink"), borderColor: css("--paper"), borderWidth: 2 });
-      mk(cv, { type: "scatter", data: { datasets: ds }, options: { scales: { x: { min: 0, max: 1, title: { display: true, text: key === "roc" ? "False positive rate (1 - specificity)" : "Recall (sensitivity)" } }, y: { min: key === "roc" ? 0 : .2, max: 1, title: { display: true, text: key === "roc" ? "Sensitivity" : "Precision" } } }, plugins: { legend: { labels: { boxWidth: 10, font: { size: 10 } } } } } });
+      const key = st.c, base = sum(D.y_test) / D.y_test.length, n = D.y_test.length, list = MODELS.map((m, i) => ({ m, i })).filter(o => st.s === "all" || o.m === S.model);
+      const sty = (m, i) => ({ showLine: true, pointRadius: 0, borderColor: MC(i) + (m === S.model ? "" : "99"), borderWidth: m === S.model ? 3 : 1.4 });
+      const order = m => D.probs[m].map((_, i) => i).sort((a, b) => D.probs[m][b] - D.probs[m][a]);
+      const gain = m => { const o = order(m), pts = [{ x: 0, y: 0 }]; let c = 0; o.forEach((i, k) => { c += D.y_test[i]; if ((k + 1) % 15 === 0 || k === n - 1) pts.push({ x: (k + 1) / n, y: c / sum(D.y_test) }); }); return pts; };
+      const cal = m => { const o = order(m).reverse(), pts = [], b = 10, sz = Math.floor(n / b); for (let j = 0; j < b; j++) { const part = o.slice(j * sz, j === b - 1 ? n : (j + 1) * sz); pts.push({ x: mean(part.map(i => D.probs[m][i])), y: mean(part.map(i => D.y_test[i])) }); } return pts; };
+      let ds, xt, yt, xr = [0, 1], yr = [0, 1], type = "scatter";
+      if (key === "roc") { ds = list.map(({ m, i }) => ({ label: `${m} (AUROC ${f3(ROC[m].auc)})`, data: ROC[m].roc, ...sty(m, i) })); ds.push({ label: "Coin flip", data: [{ x: 0, y: 0 }, { x: 1, y: 1 }], showLine: true, pointRadius: 0, borderDash: [5, 5], borderColor: css("--muted"), borderWidth: 1 }); const c = confusion(D.probs[S.model], D.y_test, S.thr); ds.push({ label: "Current threshold", data: [{ x: 1 - c.spec, y: c.sens }], pointRadius: 7, backgroundColor: css("--ink"), borderColor: css("--paper"), borderWidth: 2 }); xt = "False positive rate (1 - specificity)"; yt = "Sensitivity"; }
+      else if (key === "pr") { ds = list.map(({ m, i }) => ({ label: `${m} (AP ${f3(PR[m].ap)})`, data: PR[m].pr, ...sty(m, i) })); ds.push({ label: `Always guess yes (${pct(base, 0)})`, data: [{ x: 0, y: base }, { x: 1, y: base }], showLine: true, pointRadius: 0, borderDash: [5, 5], borderColor: css("--muted"), borderWidth: 1 }); const c = confusion(D.probs[S.model], D.y_test, S.thr); ds.push({ label: "Current threshold", data: [{ x: c.sens, y: c.prec }], pointRadius: 7, backgroundColor: css("--ink"), borderColor: css("--paper"), borderWidth: 2 }); xt = "Recall (sensitivity)"; yt = "Precision"; yr = [.2, 1]; }
+      else if (key === "gain") { ds = list.map(({ m, i }) => ({ label: m, data: gain(m), ...sty(m, i) })); ds.push({ label: "Random order", data: [{ x: 0, y: 0 }, { x: 1, y: 1 }], showLine: true, pointRadius: 0, borderDash: [5, 5], borderColor: css("--muted"), borderWidth: 1 }); xt = "Share of patients called (highest risk first)"; yt = "Share of all readmissions caught"; }
+      else if (key === "lift") { ds = list.map(({ m, i }) => ({ label: m, data: gain(m).filter(p => p.x > .04).map(p => ({ x: p.x, y: p.y / p.x })), ...sty(m, i) })); ds.push({ label: "Random order (1.0)", data: [{ x: .05, y: 1 }, { x: 1, y: 1 }], showLine: true, pointRadius: 0, borderDash: [5, 5], borderColor: css("--muted"), borderWidth: 1 }); xt = "Share of patients called (highest risk first)"; yt = "Lift (times better than random)"; yr = [.6, 2]; }
+      else { ds = list.map(({ m, i }) => ({ label: m, data: cal(m), ...sty(m, i), pointRadius: 4 })); ds.push({ label: "Perfectly calibrated", data: [{ x: 0, y: 0 }, { x: 1, y: 1 }], showLine: true, pointRadius: 0, borderDash: [5, 5], borderColor: css("--muted"), borderWidth: 1 }); xt = "Predicted probability"; yt = "Actual share readmitted"; xr = [.1, .8]; yr = [.1, .8]; }
+      mk(cv, { type, data: { datasets: ds }, options: { scales: { x: { min: xr[0], max: xr[1], title: { display: true, text: xt } }, y: { min: yr[0], max: yr[1], title: { display: true, text: yt } } }, plugins: { legend: { labels: { boxWidth: 10, font: { size: 10 } } } } } });
     },
-    caption: st => st.c === "roc" ? "A curve that bows toward the top left is better, and the dashed diagonal is a coin flip. Ours hug the diagonal. The black dot is where the current threshold sits on the selected model." : "Precision is how often a flagged patient really comes back. The dashed line is what you would get by flagging everyone. Our curves stay close to it."
+    caption: st => ({ roc: "A curve that bows toward the top left is better, and the dashed diagonal is a coin flip. Ours hug the diagonal. The black dot is where the current threshold sits on the selected model.", pr: "Precision is how often a flagged patient really comes back. The dashed line is what you would get by flagging everyone. Our curves stay close to it.", gain: "If we called patients from highest to lowest predicted risk, this shows what share of all readmissions we would reach. The dashed line is calling patients in random order. Higher above it is better.", lift: "Lift is how many times more readmissions we find than random calling would at the same number of calls. A lift of 1.0 means no better than random.", cal: "Each point is a tenth of the patients grouped by predicted risk. If a model were well calibrated, the points would follow the dashed line. Ours are squeezed into a narrow range because the models are not confident." })[st.c]
   }));
-  p.append(section("How the predictions are spread",
+    p.append(section("How the predictions are spread",
     card({
       title: "Predicted probabilities for the selected model", height: 310,
       toggles: [{ key: "st", label: "Show as", value: "bar", options: [["bar", "Bars"], ["line", "Smoothed"], ["cdf", "Cumulative"]] }, { key: "b", label: "Bins", value: "20", options: [["10", "10"], ["20", "20"], ["40", "40"]] }],
@@ -490,12 +532,13 @@ PAGES.models = () => {
       caption: st => st.t === "all" ? "Each model's importance scaled to add up to 100%, so you can compare which variables each one leaned on. Number of diagnoses stands out in all three." : S.model === MODELS[0] ? "Each bar is that variable's weight in the logistic regression. Coral pushes the prediction toward readmitted and teal pushes it away. Longer bars matter more." : "Longer bars mean the model relied on that variable more when splitting. Importance shows what the model used, not that the variable causes readmission."
     }),
         card({
-      title: "Inside the models", kind: "html", toggles: [{ key: "v", label: "Show", value: "tree", options: [["tree", "Decision tree rules"], ["lr", "Logistic regression weights"]] }],
+      title: "Inside the models", kind: "html", toggles: [{ key: "v", label: "Show", value: "tree", options: [["tree", "Decision tree rules"], ["diag", "Tree diagram"], ["lr", "Logistic regression weights"]] }],
       draw(st, body) {
+        if (st.v === "diag") return void (body.innerHTML = treeSVG());
         if (st.v === "tree") body.innerHTML = `<pre>${D.tree_text.replace(/</g, "&lt;")}</pre>`;
         else body.innerHTML = `<div class="scroll"><table><tr><th>Variable</th><th class="n">Weight (per 1 SD)</th><th class="n">Odds ratio per 1 unit</th></tr>${FEATS.map((f, i) => `<tr><td>${LBL[f]}</td><td class="n">${D.lr.coef[i].toFixed(3)}</td><td class="n">${Math.exp(D.lr.coef[i] / D.lr.scale[i]).toFixed(3)}</td></tr>`).join("")}<tr><td>Intercept</td><td class="n">${D.lr.intercept.toFixed(3)}</td><td></td></tr></table></div>`;
       },
-      caption: st => st.v === "tree" ? "Read from the top. At each line, follow the branch that is true for the patient. The class at the end of a branch is the prediction (0 = not readmitted, 1 = readmitted)." : "An odds ratio of 1.03 means each extra unit of that variable raises the odds of readmission by about 3%. Values close to 1 mean a tiny effect."
+      caption: st => st.v === "diag" ? "Each box is a question or a final answer. Follow the left branch when the answer is yes and the right branch when it is no. Box color shows the share of readmitted stays in that group (coral is higher, teal is lower), and n is how many training stays reached the box. Every branch ends near the overall 40%, which is why the tree is a weak predictor." : st.v === "tree" ? "Read from the top. At each line, follow the branch that is true for the patient. The class at the end of a branch is the prediction (0 = not readmitted, 1 = readmitted)." : "An odds ratio of 1.03 means each extra unit of that variable raises the odds of readmission by about 3%. Values close to 1 mean a tiny effect."
     })));
   p.append(section("Could the differences just be luck?",
     card({
@@ -522,7 +565,7 @@ function runBoot() {
 /* ---------- 5. threshold ---------- */
 PAGES.threshold = () => {
   const p = h("<div></div>");
-  p.append(titlebar("Threshold", "A model gives a probability. The threshold decides when we call that a prediction of readmitted."));
+  p.append(titlebar("Analysis process: choosing a threshold", "A model gives a probability. The threshold decides when we call that a prediction of readmitted."));
   p.append(settingsBar());
   p.append(section("In plain terms",
     dyn(() => {
@@ -532,7 +575,7 @@ PAGES.threshold = () => {
   p.append(section("Sweeping the threshold",
     card({
       title: "Metrics at every threshold", height: 330, kind: "both",
-      toggles: [{ key: "t", label: "Show as", value: "line", options: [["line", "Lines"], ["area", "Area"], ["heat", "Heatmap"]] },
+      toggles: [{ key: "t", label: "Show as", value: "line", options: [["line", "Lines"], ["area", "Area"], ["stack", "Outcome counts"], ["heat", "Heatmap"]] },
         { key: "m", label: "Metric", type: "select", value: "ss", options: [["ss", "Sensitivity + specificity"], ["acc", "Accuracy"], ["prec", "Precision"], ["f1", "F1 score"], ["j", "Youden's J"], ["flag", "Share flagged"]] },
         { key: "s", label: "Models", value: "sel", options: [["sel", "Selected"], ["all", "All three"]] }],
       draw(st, cv, el) {
@@ -544,6 +587,7 @@ PAGES.threshold = () => {
         }
         showCanvas(el, true);
         const ts = []; for (let t = 0.1; t <= 0.7001; t += 0.01) ts.push(+t.toFixed(2));
+        if (st.t === "stack") { const cs = ts.map(t => confusion(D.probs[S.model], D.y_test, t)), mkS = (label, key, col, i) => ({ label, data: cs.map(c => c[key] / c.n * 100), backgroundColor: col + "cc", borderWidth: 0, fill: i === 0 ? "origin" : "-1", pointRadius: 0 }); return mk(cv, { type: "line", data: { labels: ts.map(t => t.toFixed(2)), datasets: [mkS("True positive", "tp", css("--violet"), 0), mkS("False positive", "fp", css("--sun"), 1), mkS("False negative", "fn", css("--coral"), 2), mkS("True negative", "tn", css("--teal"), 3)] }, options: { scales: { x: { title: { display: true, text: "Threshold" }, ticks: { maxTicksLimit: 13 } }, y: { stacked: true, max: 100, title: { display: true, text: "% of test patients" } } } } }); }
         const fill = st.t === "area";
         const line = (m, key, col, lab, dash) => ({ label: lab, data: ts.map(t => confusion(D.probs[m], D.y_test, t)[key]), borderColor: col, backgroundColor: col + "26", fill, pointRadius: 0, tension: .2, borderDash: dash || [] });
         let ds = [];
@@ -554,7 +598,7 @@ PAGES.threshold = () => {
         mk(cv, { type: "line", data: { labels: ts.map(t => t.toFixed(2)), datasets: ds }, options: { scales: { x: { title: { display: true, text: "Threshold" }, ticks: { maxTicksLimit: 13 } }, y: { min: st.m === "j" ? -.1 : 0, max: st.m === "j" ? .3 : 1 } }, plugins: { legend: { labels: { boxWidth: 12, font: { size: 11 } } } } },
           plugins: [{ id: "cur", afterDraw(ch) { const x = ch.scales.x.getPixelForValue(mi), { top, bottom } = ch.chartArea, c = ch.ctx; c.save(); c.strokeStyle = css("--ink"); c.setLineDash([4, 4]); c.beginPath(); c.moveTo(x, top); c.lineTo(x, bottom); c.stroke(); c.restore(); } }] });
       },
-      caption: st => st.t === "heat" ? "Each cell is one metric value for a model at a threshold. Darker violet means a higher value in this table. Pick a metric above to compare how each model behaves as the threshold moves." : "The dashed vertical line is the current threshold. Moving right means fewer patients get flagged: specificity rises and sensitivity falls. Try Youden's J to see where the balance peaks, and Share flagged to see how many patients get called."
+      caption: st => st.t === "stack" ? "At each threshold, the 100% height is split into the four outcomes for the selected model. Moving right, the coral missed readmissions grow and the yellow false alarms shrink." : st.t === "heat" ? "Each cell is one metric value for a model at a threshold. Darker violet means a higher value in this table. Pick a metric above to compare how each model behaves as the threshold moves." : "The dashed vertical line is the current threshold. Moving right means fewer patients get flagged: specificity rises and sensitivity falls. Try Youden's J to see where the balance peaks, and Share flagged to see how many patients get called."
     })));
   p.append(section("Choosing a threshold by cost",
     lede("Missing a patient who comes back is probably worse than making an extra follow up call. This lets you say how much worse."),
@@ -622,6 +666,17 @@ PAGES.try = () => {
     },
     caption: "The percentile tells you what share of all 3,000 stays had this value or lower."
   }));
+  p.append(card({
+    title: "What if? Change one variable and watch the prediction", height: 320,
+    toggles: [{ key: "v", label: "Vary", type: "select", value: "number_diagnoses", options: VAR_OPTS.slice(0, 5) }, { key: "t", label: "Show as", value: "line", options: [["line", "Lines"], ["area", "Area"]] }],
+    draw(st, cv) {
+      const f = st.v, j = FEATS.indexOf(f), [lo, hi] = CFG[f], base = get(), step = Math.max(1, Math.round((hi - lo) / 40)), xs = []; for (let v = lo; v <= hi; v += step) xs.push(v);
+      const ds = MODELS.map((m, i) => ({ label: m, data: xs.map(v => { const x = base.slice(); x[j] = v; return predict(m, x) * 100; }), borderColor: MC(i), backgroundColor: MC(i) + "22", fill: st.t === "area", pointRadius: 0, tension: .2 }));
+      ds.push({ label: `Threshold ${S.thr.toFixed(2)}`, data: xs.map(() => S.thr * 100), borderColor: css("--ink"), borderDash: [5, 4], pointRadius: 0, borderWidth: 1 });
+      mk(cv, { type: "line", data: { labels: xs, datasets: ds }, options: { scales: { x: { title: { display: true, text: LBL[f] }, ticks: { maxTicksLimit: 14 } }, y: { title: { display: true, text: "Predicted chance of readmission (%)" } } }, plugins: { legend: { labels: { boxWidth: 12, font: { size: 11 } } } } } });
+    },
+    caption: "This takes the patient you built above and changes only one variable. Each line is a model's predicted chance of readmission. Where a line crosses the dashed threshold, the prediction flips. The lines are fairly flat, which shows how weak each variable is on its own."
+  }));
   setTimeout(() => setP(presets.Typical), 0);
   return p;
 };
@@ -636,6 +691,17 @@ PAGES.results = () => {
     dyn(() => {
       const rows = MODELS.map(m => { const a = confusion(D.probs[m], D.y_test, 0.5), b = confusion(D.probs[m], D.y_test, 0.4); return `<tr><td>${m}</td><td class="n">${f3(ROC[m].auc)}</td><td class="n">${f3(a.acc)}</td><td class="n">${f3(a.sens)}</td><td class="n">${f3(a.spec)}</td><td class="n">${f3(b.acc)}</td><td class="n">${f3(b.sens)}</td><td class="n">${f3(b.spec)}</td></tr>`; }).join("");
       return `<div class="card scroll"><table><tr><th></th><th class="n">AUROC</th><th class="n">Acc. @0.50</th><th class="n">Sens. @0.50</th><th class="n">Spec. @0.50</th><th class="n">Acc. @0.40</th><th class="n">Sens. @0.40</th><th class="n">Spec. @0.40</th></tr>${rows}</table></div>`;
+    })));
+  p.append(section("Scoreboard",
+    card({
+      title: "Default threshold vs our threshold", height: 300,
+      toggles: [{ key: "m", label: "Metric", type: "select", value: "sens", options: [["sens", "Sensitivity"], ["spec", "Specificity"], ["acc", "Accuracy"], ["prec", "Precision"], ["f1", "F1 score"], ["j", "Youden's J"]] }, { key: "t", label: "Show as", value: "bar", options: [["bar", "Bars"], ["radar", "Radar"]] }],
+      draw(st, cv) {
+        const v = (t, m) => confusion(D.probs[m], D.y_test, t)[st.m];
+        if (st.t === "radar") return mk(cv, { type: "radar", data: { labels: ["Sensitivity", "Specificity", "Accuracy", "Precision", "F1"], datasets: [0.5, 0.4].map((t, i) => ({ label: `${S.model} at ${t.toFixed(2)}`, data: ["sens", "spec", "acc", "prec", "f1"].map(k => confusion(D.probs[S.model], D.y_test, t)[k]), borderColor: [css("--violet"), css("--coral")][i], backgroundColor: [css("--violet"), css("--coral")][i] + "22" })) }, options: { scales: { r: { min: 0, max: 1, ticks: { backdropColor: "transparent" } } } } });
+        mk(cv, { type: "bar", data: { labels: MODELS, datasets: [0.5, 0.4].map((t, i) => ({ label: `Threshold ${t.toFixed(2)}`, data: MODELS.map(m => v(t, m)), backgroundColor: [css("--violet"), css("--coral")][i], borderRadius: 6 })) }, options: { scales: { y: { min: st.m === "j" ? -.1 : 0, max: st.m === "j" ? .3 : 1 } } } });
+      },
+      caption: st => st.t === "radar" ? "Two shapes for the selected model: threshold 0.50 (violet) and threshold 0.40 (coral). Lowering the threshold stretches the sensitivity corner but pulls in specificity and precision." : "Violet bars use the default 0.50 threshold and coral bars use our 0.40 threshold. Pick sensitivity to see how much more of the readmissions the lower threshold catches."
     })));
   p.append(section("What this means",
     para("The numbers recorded during a stay, like days in the hospital, tests, and medications, are only weakly related to coming back. The number of diagnoses was the variable the models leaned on most, but even that does not separate the two groups well. Things like prior admissions, where the patient goes after discharge, and lab results such as HbA1c would probably help more, but they are not in this simplified file."),
@@ -700,7 +766,7 @@ PAGES.glossary = () => {
 };
 
 /* ================= shell: tabs, routing, display menu ================= */
-const TABS = [["overview", "Overview", "🏠"], ["dataset", "Dataset", "📋"], ["explore", "Explore", "🔍"], ["models", "Models", "🧠"], ["threshold", "Threshold", "🎚️"], ["try", "Try a patient", "🧪"], ["results", "Results", "✅"], ["glossary", "Glossary", "📖"]];
+const TABS = [["overview", "Research question", "🏠"], ["dataset", "Dataset", "📋"], ["explore", "Explore", "🔍"], ["models", "Analysis: Models", "🧠"], ["threshold", "Analysis: Threshold", "🎚️"], ["try", "Try a patient", "🧪"], ["results", "Results", "🏁"], ["glossary", "Glossary", "📖"]];
 function addChips(page) {
   const hs = $$("section.block > h3", page); if (hs.length < 3) return;
   hs.forEach((x, i) => x.id = x.id || `${S.tab}-${i}`);

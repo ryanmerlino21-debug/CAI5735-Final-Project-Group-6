@@ -47,6 +47,22 @@ python3 -m http.server --directory docs
 
 Then open http://localhost:8000. If you change the models, rerun `python scripts/export_results.py` to refresh `docs/data.json`.
 
+## How this project meets the guidelines
+
+| Requirement | Where |
+|---|---|
+| Research question about a binary outcome and 2+ variables | Top of `notebook.py` and the "Research question" tab of the app |
+| Marimo notebook with an explanation for every cell | `notebook.py` (a markdown cell or "Why" comment on each cell) |
+| Load data, pick variables, train/test split | Notebook sections 1 to 3 |
+| 3 classification models (logistic regression, decision tree, random forest) | Notebook section 4 |
+| Confusion matrix, accuracy, sensitivity, specificity, ROC and AUROC for each model | Notebook section 5 |
+| Classify a new patient with each model | Notebook section 6 and the "Try a patient" tab |
+| Compare models and justify the best one | Notebook section 7 and the "Analysis: Models" tab |
+| Justify the threshold | Notebook section 8 and the "Analysis: Threshold" tab |
+| App on GitHub Pages with question, dataset, process and results | The interactive app link above |
+| Dataset source stated | UCI Machine Learning Repository, Strack et al. (2014), https://doi.org/10.24432/C5230J |
+| All group members named | README, notebook and app |
+
 ## Key result
 
 All three models (logistic regression, decision tree, random forest) reach an AUROC of about 0.59, so these in-stay measurements predict readmission only weakly. We pick the random forest with a 0.40 threshold. See the app for details.

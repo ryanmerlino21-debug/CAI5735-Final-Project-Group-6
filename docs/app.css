@@ -1,25 +1,25 @@
 :root{
-  --bg:#f1f6ff;--paper:#ffffff;--ink:#17223d;--muted:#5a6785;--line:#dde5f6;--soft:#edf2fd;
-  --teal:#0fb5a5;--coral:#ff6a4d;--violet:#7a5cff;--sun:#ffb020;--hero1:#5b4bff;--hero2:#14c6c0;--link:#3a4ad6;
-  --shadow:0 3px 14px #2a3a8a14;
+  --bg:#f6faff;--paper:#ffffff;--ink:#14213d;--muted:#56658a;--line:#d9e4fb;--soft:#eaf1ff;
+  --teal:#00c2a8;--coral:#ff5d73;--violet:#7a4dff;--sun:#ffb703;--hero1:#6c3cff;--hero2:#00c2d1;--link:#3b3be0;
+  --shadow:0 4px 18px #4a5cff1c;
 }
 [data-theme=dark]{
-  --bg:#121733;--paper:#1b2245;--ink:#f0f3ff;--muted:#a8b3d8;--line:#2c3668;--soft:#232c58;
-  --teal:#34d9c8;--coral:#ff8a70;--violet:#a99bff;--sun:#ffc85a;--hero1:#3b2fb8;--hero2:#0e8f8c;--link:#9fb0ff;
-  --shadow:0 3px 14px #0006;
+  --bg:#12173a;--paper:#1c2350;--ink:#f3f5ff;--muted:#aab6e0;--line:#303a7a;--soft:#252e66;
+  --teal:#3ee6cf;--coral:#ff8095;--violet:#b09cff;--sun:#ffd24d;--hero1:#4a2bd6;--hero2:#0aa3b3;--link:#a5b4ff;
+  --shadow:0 4px 18px #0007;
 }
 *{box-sizing:border-box}
 html{font-size:16px;scroll-behavior:smooth}
 html[data-big=on]{font-size:18.5px}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
-body{margin:0;background:var(--bg);color:var(--ink);font:1rem/1.62 "Avenir Next",Avenir,"Segoe UI",system-ui,-apple-system,sans-serif}
+body{margin:0;background:radial-gradient(900px 500px at 8% -5%,#c9f5ee66,transparent),radial-gradient(800px 500px at 100% 0%,#d9ccff66,transparent),var(--bg);background-attachment:fixed;color:var(--ink);font:1rem/1.62 "Avenir Next",Avenir,"Segoe UI",system-ui,-apple-system,sans-serif}
 a{color:var(--link)}
 code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:.88em}
 button,select,input{font:inherit;color:inherit}
 .skip{position:absolute;left:-999px}.skip:focus{left:8px;top:8px;background:var(--paper);padding:8px;z-index:99}
 
 /* hero */
-.hero{background:linear-gradient(120deg,var(--hero1),var(--hero2));color:#f2fbf9;padding:34px 20px 26px;position:relative;overflow:hidden}
+.hero{background:linear-gradient(115deg,var(--hero1),#b04dff 45%,var(--hero2));color:#f2fbf9;padding:34px 20px 26px;position:relative;overflow:hidden}
 .hero:after{content:"";position:absolute;right:-60px;top:-60px;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,#ffffff22,transparent 65%)}
 .hero-in{max-width:1180px;margin:0 auto;position:relative;z-index:1}
 .eyebrow{font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:#e4fffb;font-weight:800}
@@ -153,3 +153,19 @@ footer{max-width:1180px;margin:0 auto;padding:22px;color:var(--muted);font-size:
 svg text{fill:var(--muted);font-size:11px}
 .dtab td,.dtab th{padding:6px 9px;font-size:.84rem;white-space:nowrap}
 .pillbtn{border:1px solid var(--line);background:var(--paper);border-radius:99px;padding:4px 12px;cursor:pointer;font-size:.84rem}
+
+.kpi:nth-child(4n+1){background:linear-gradient(135deg,#e6fbf7,var(--paper))}.kpi:nth-child(4n+2){background:linear-gradient(135deg,#ffe9ed,var(--paper))}
+.kpi:nth-child(4n+3){background:linear-gradient(135deg,#efe8ff,var(--paper))}.kpi:nth-child(4n){background:linear-gradient(135deg,#fff3d6,var(--paper))}
+[data-theme=dark] .kpi{background:var(--paper)!important}
+.callout{border-top-width:5px;background:linear-gradient(180deg,#f2f7ff,var(--paper))}
+[data-theme=dark] .callout{background:var(--paper)}
+.callout.warn{background:linear-gradient(180deg,#fff1f3,var(--paper))}
+[data-theme=dark] .callout.warn{background:var(--paper)}
+section.block>h3{display:flex;align-items:center;gap:10px}
+section.block>h3:before{content:"";width:8px;height:22px;border-radius:4px;background:linear-gradient(var(--hero1),var(--hero2))}
+.card{background:var(--paper)}
+.side{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:10px;box-shadow:var(--shadow)}
+@media(max-width:860px){.side{border-radius:0;box-shadow:none;border-width:0 0 1px}}
+.step:hover,.kpi:hover{transform:translateY(-2px);transition:transform .15s}
+.step .ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,#e6fbf7,#efe8ff)}
+[data-theme=dark] .step .ic{background:var(--soft)}

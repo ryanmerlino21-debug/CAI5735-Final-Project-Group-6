@@ -1,6 +1,23 @@
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "marimo",
+#     "numpy",
+#     "pandas",
+#     "matplotlib",
+#     "scikit-learn",
+# ]
+# ///
+
 # CAI 5735 Final Project - analysis notebook
-# Group members: Ryan Merlino, April Walter, Nikolas Platon
+# Group 6 members: Ryan Merlino, April Walter, Nikolas Platon
 # GitHub repository: https://github.com/ryanmerlino21-debug/CAI5735-Final-Project-Group-6
+# Web app: https://ryanmerlino21-debug.github.io/CAI5735-Final-Project-Group-6/
+# Dataset: Diabetes 130-US Hospitals for Years 1999-2008, UCI Machine Learning Repository
+#          (Strack et al., 2014), https://doi.org/10.24432/C5230J
+#
+# Every code cell below has a "Why" comment (or a markdown cell right above it)
+# that explains why the code was written.
 
 import marimo
 
@@ -22,7 +39,9 @@ def _():
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score
 
-    # Imports live in one cell so every later cell can use them.
+    # Why: marimo shares variables between cells, so we import every library once here.
+    # pandas/numpy handle the data, matplotlib draws the plots, and scikit-learn
+    # provides the split, the three models and the evaluation metrics.
     return (
         DecisionTreeClassifier, LogisticRegression, RandomForestClassifier,
         StandardScaler, confusion_matrix, make_pipeline, mo, np, pd, plt,
@@ -65,9 +84,12 @@ def _(mo):
 
 
 @app.cell
-def _(pd):
-    # Path works both locally and when the notebook is opened from the repo root.
-    df = pd.read_csv("data/diabetes_130.csv")
+def _(mo, pd):
+    # Why: this is the load step. mo.notebook_location() finds the data folder next to the
+    # notebook no matter which directory marimo was started from. We print the shape and
+    # missing value count as a quick check that the file loaded correctly, then show the
+    # first rows so everyone can see what a stay looks like.
+    df = pd.read_csv(mo.notebook_location() / "data" / "diabetes_130.csv")
     print("shape:", df.shape, "| missing values:", int(df.isna().sum().sum()))
     df.head()
     return (df,)
@@ -91,6 +113,9 @@ def _(mo):
 
 @app.cell
 def _(df):
+    # Why: this cell picks the response (y) and predictors (X). y turns the three level
+    # readmitted column into 0/1, and X keeps the five numeric counts plus a 0/1 version
+    # of diabetes_med so every model gets numbers only.
     numeric_cols = ["time_in_hospital", "num_lab_procedures", "num_procedures",
                     "num_medications", "number_diagnoses"]
     X = df[numeric_cols].copy()
@@ -113,6 +138,8 @@ def _(mo):
 
 @app.cell
 def _(X, train_test_split, y):
+    # Why: the split. Models must be judged on stays they were not trained on, so we keep
+    # 25% back for testing. stratify=y keeps the readmission rate equal in both parts.
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.25, stratify=y, random_state=42
     )
@@ -138,6 +165,10 @@ def _(
     DecisionTreeClassifier, LogisticRegression, RandomForestClassifier,
     StandardScaler, X_train, make_pipeline, y_train,
 ):
+    # Why: these are the three classification models we compare. Logistic regression gets a
+    # StandardScaler in a pipeline because it works best with variables on the same scale.
+    # The tree depth and leaf size limits are there to prevent overfitting. We fit every
+    # model on the training set only.
     models = {
         "Logistic regression": make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000)),
         "Decision tree": DecisionTreeClassifier(max_depth=4, min_samples_leaf=30, random_state=42),
@@ -167,6 +198,11 @@ def _(mo):
 
 @app.cell
 def _(X_test, confusion_matrix, models, pd, roc_auc_score, roc_curve, y_test):
+    # Why: this cell scores every model on the test set. metrics_at() turns predicted
+    # probabilities into yes/no predictions at a chosen threshold and returns the confusion
+    # matrix counts, accuracy, sensitivity and specificity. We reuse it later for the
+    # threshold sweep. roc_curve and roc_auc_score give the ROC points and the AUROC, which
+    # do not depend on a threshold. The table is the model comparison.
     def metrics_at(y_true, prob, thr=0.5):
         pred = (prob >= thr).astype(int)
         tn, fp, fn, tp = confusion_matrix(y_true, pred).ravel()
@@ -186,6 +222,8 @@ def _(X_test, confusion_matrix, models, pd, roc_auc_score, roc_curve, y_test):
 
 @app.cell
 def _(models, np, plt, probs, y_test, metrics_at):
+    # Why: a confusion matrix for each model, drawn side by side so the mistakes are easy to
+    # compare. Rows are what really happened and columns are what the model predicted.
     fig, axes = plt.subplots(1, 3, figsize=(12, 3.6))
     for ax, (name, p) in zip(axes, probs.items()):
         m = metrics_at(y_test, p)
@@ -204,6 +242,8 @@ def _(models, np, plt, probs, y_test, metrics_at):
 
 @app.cell
 def _(plt, results, rocs):
+    # Why: the ROC curve for every model on one plot. The dashed diagonal is a coin flip, so
+    # curves closer to the top left are better. The legend shows each model's AUROC.
     fig2, ax2 = plt.subplots(figsize=(5.5, 5))
     for _n, (fpr, tpr, _) in rocs.items():
         ax2.plot(fpr, tpr, label=f"{_n} (AUROC {results.loc[_n, 'AUROC']:.3f})")
@@ -228,6 +268,9 @@ def _(mo):
 
 @app.cell
 def _(X, models, pd):
+    # Why: this demonstrates using each trained model on a brand new patient. We build one row
+    # with the same columns as X, ask each model for a probability of readmission, and apply
+    # the default 0.5 cutoff to get a yes/no prediction.
     new_patient = pd.DataFrame([{
         "time_in_hospital": 7, "num_lab_procedures": 55, "num_procedures": 2,
         "num_medications": 20, "number_diagnoses": 8, "diabetes_med": 1,
@@ -259,6 +302,8 @@ def _(mo):
 
 @app.cell
 def _(results):
+    # Why: this picks the best model by AUROC (it does not depend on a threshold) and prints
+    # the comparison table again next to the choice so the decision is easy to check.
     best = results["AUROC"].idxmax()
     print(results[["accuracy", "sensitivity", "specificity", "AUROC"]].round(3).to_string())
     print("\nHighest AUROC:", best)
@@ -285,6 +330,9 @@ def _(mo):
 
 @app.cell
 def _(best, metrics_at, np, pd, probs, y_test):
+    # Why: this supports the threshold decision. For the chosen model we recompute accuracy,
+    # sensitivity and specificity at many thresholds, plus Youden's J (sensitivity +
+    # specificity - 1) to see where the balance between the two is best.
     sweep = pd.DataFrame(
         [{"threshold": t, **{k: v for k, v in metrics_at(y_test, probs[best], t).items()
                              if k in ("accuracy", "sensitivity", "specificity")}}
@@ -306,8 +354,8 @@ def _(mo):
     counts recorded during the stay only have a weak link to readmission. A better model
     would probably need more information, like prior admissions, discharge destination, and
     lab results such as HbA1c. For now the models are only a rough screening tool and should
-    not be used alone to make decisions about a patient. The app (`app.py`) has the
-    interactive version.
+    not be used alone to make decisions about a patient. The web app on GitHub Pages
+    (link at the top of this notebook and in the README) has the interactive version.
     """)
     return
 

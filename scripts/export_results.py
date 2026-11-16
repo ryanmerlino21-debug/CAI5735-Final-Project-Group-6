@@ -29,7 +29,7 @@ def tree_json(t):
     leaf_p = s.value[:, 0, 1] / s.value[:, 0, :].sum(axis=1)
     return {"l": s.children_left.tolist(), "r": s.children_right.tolist(),
             "f": s.feature.tolist(), "t": [round(float(v), 6) for v in s.threshold],
-            "p": [round(float(v), 5) for v in leaf_p]}
+            "p": [round(float(v), 5) for v in leaf_p], "n": s.n_node_samples.tolist()}
 
 probs = {"Logistic regression": lr.predict_proba(scaler.transform(X_test))[:, 1],
          "Decision tree": tree.predict_proba(X_test)[:, 1],
