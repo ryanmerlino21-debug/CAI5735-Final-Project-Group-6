@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="./favicon.ico" />
+    <!-- Preload is necessary because we show these images when we disconnect from the server,
+    but at that point we cannot load these images from the server -->
+    <link rel="preload" href="./assets/gradient-yHQUC_QB.png" as="image" />
+    <link rel="preload" href="./assets/noise-60BoTA8O.png" as="image" />
+    <!-- Preload the fonts -->
+    <link rel="preload" href="./assets/Lora-VariableFont_wght-CZceb_kH.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+    <link rel="preload" href="./assets/PTSans-Regular-Bam3NpBI.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+    <link rel="preload" href="./assets/PTSans-Bold-C_DwAp7Z.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+    <link rel="preload" href="./assets/FiraMono-Regular-CEsLFVD9.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+    <link rel="preload" href="./assets/FiraMono-Medium-D5MAsWEG.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+    <link rel="preload" href="./assets/FiraMono-Bold-C6PDArdf.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="a marimo app" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="manifest" href="./manifest.json" />
+
+    <script data-marimo="true">
+      function __resizeIframe(obj) {
+        const scrollbarHeight = 20; // Max between windows, mac, and linux
+
+        function setHeight() {
+          // Guard against race condition where iframe isn't ready
+          if (!obj.contentWindow?.document?.documentElement) {
+            return;
+          }
+          const element = obj.contentWindow.document.documentElement;
+          // If there is no vertical scrollbar, we don't need to resize the iframe
+          if (element.scrollHeight === element.clientHeight) {
+            return;
+          }
+
+          // Create a new height that includes the scrollbar height if it's visible
+          const hasHorizontalScrollbar = element.scrollWidth > element.clientWidth;
+          const newHeight = element.scrollHeight + (hasHorizontalScrollbar ? scrollbarHeight : 0);
+
+          // Only update the height if it's different from the current height
+          if (obj.style.height !== `${newHeight}px`) {
+            obj.style.height = `${newHeight}px`;
+          }
+        }
+
+        // Resize the iframe to the height of the content and bottom scrollbar height
+        setHeight();
+
+        // Resize the iframe when the content changes
+        const resizeObserver = new ResizeObserver((_entries) => {
+          setHeight();
+        });
+        // Only observe if iframe content is ready
+        if (obj.contentWindow?.document?.body) {
+          resizeObserver.observe(obj.contentWindow.document.body);
+        }
+      }
+    </script>
+    <marimo-filename hidden>notebook.py</marimo-filename>
+    <!-- TODO(Trevor): Legacy, required by VS Code plugin. Remove when plugin is updated (see marimo/server/_templates/template.py) -->
+    <marimo-version data-version="{{ version }}" hidden></marimo-version>
+    <marimo-user-config data-config="{{ user_config }}" hidden></marimo-user-config>
+    <marimo-server-token data-token="{{ server_token }}" hidden></marimo-server-token>
+    <!-- /TODO -->
+    <title>Predicting Diabetes Readmission</title>
+    <script type="module" crossorigin src="./assets/index-s-M1OXjs.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/rolldown-runtime-B0Z9INg1.js">
+    <link rel="modulepreload" crossorigin href="./assets/react-DVplv7_D.js">
+    <link rel="modulepreload" crossorigin href="./assets/compiler-runtime-BrajqUja.js">
+    <link rel="modulepreload" crossorigin href="./assets/useEvent-Dfcbgjhg.js">
+    <link rel="modulepreload" crossorigin href="./assets/react-dom-_LrxgvjW.js">
+    <link rel="modulepreload" crossorigin href="./assets/schemas-Dv42wLFq.js">
+    <link rel="modulepreload" crossorigin href="./assets/isObject-BCaOs5rp.js">
+    <link rel="modulepreload" crossorigin href="./assets/isSymbol-oX0TOjjx.js">
+    <link rel="modulepreload" crossorigin href="./assets/now-Cmx0b_zA.js">
+    <link rel="modulepreload" crossorigin href="./assets/debounce-aFmHgJZY.js">
+    <link rel="modulepreload" crossorigin href="./assets/isArrayLikeObject-DnwgSs_Z.js">
+    <link rel="modulepreload" crossorigin href="./assets/_baseMerge-CQpUq7ep.js">
+    <link rel="modulepreload" crossorigin href="./assets/objects-snlMn4yk.js">
+    <link rel="modulepreload" crossorigin href="./assets/useEventListener-D9cftcHj.js">
+    <link rel="modulepreload" crossorigin href="./assets/invariant-Ci2dTZ72.js">
+    <link rel="modulepreload" crossorigin href="./assets/config-VPSq73n8.js">
+    <link rel="modulepreload" crossorigin href="./assets/utils-B4K466FK.js">
+    <link rel="modulepreload" crossorigin href="./assets/session-DqoWmb7X.js">
+    <link rel="modulepreload" crossorigin href="./assets/Deferred-CrTnjj37.js">
+    <link rel="modulepreload" crossorigin href="./assets/config-DX8Y2WbJ.js">
+    <link rel="modulepreload" crossorigin href="./assets/clsx-DB0hHKMi.js">
+    <link rel="modulepreload" crossorigin href="./assets/cn-ldLVeaqm.js">
+    <link rel="modulepreload" crossorigin href="./assets/jsx-runtime-B74pBk57.js">
+    <link rel="modulepreload" crossorigin href="./assets/fullscreen-B9tHcfpV.js">
+    <link rel="modulepreload" crossorigin href="./assets/dist-iaThVDkA.js">
+    <link rel="modulepreload" crossorigin href="./assets/menu-items-BrwnTgyK.js">
+    <link rel="modulepreload" crossorigin href="./assets/use-restore-focus-BxEGwIbk.js">
+    <link rel="modulepreload" crossorigin href="./assets/createLucideIcon-DfJ2oMlA.js">
+    <link rel="modulepreload" crossorigin href="./assets/circle-DXf-VWZG.js">
+    <link rel="modulepreload" crossorigin href="./assets/button-COI-NGrx.js">
+    <link rel="modulepreload" crossorigin href="./assets/check-BQNapYaf.js">
+    <link rel="modulepreload" crossorigin href="./assets/I18nProvider-Cg2I_s1_.js">
+    <link rel="modulepreload" crossorigin href="./assets/useNumberFormatter-D7O_26UI.js">
+    <link rel="modulepreload" crossorigin href="./assets/select-DTBn5eTb.js">
+    <link rel="modulepreload" crossorigin href="./assets/toast-BGzLGnvw.js">
+    <link rel="modulepreload" crossorigin href="./assets/tooltip-C9TuY18o.js">
+    <link rel="modulepreload" crossorigin href="./assets/paths-bkIFVj8h.js">
+    <link rel="modulepreload" crossorigin href="./assets/useLifecycle-Mq4gc5kS.js">
+    <link rel="modulepreload" crossorigin href="./assets/toDate-DOj9Q6uC.js">
+    <link rel="modulepreload" crossorigin href="./assets/database-zap-B_PMVg8T.js">
+    <link rel="modulepreload" crossorigin href="./assets/alert-dialog-BaPGzeOK.js">
+    <link rel="modulepreload" crossorigin href="./assets/arrays-BqUx5USx.js">
+    <link rel="modulepreload" crossorigin href="./assets/once-Haz_uxEL.js">
+    <link rel="modulepreload" crossorigin href="./assets/numbers-Mk3-CcoU.js">
+    <link rel="modulepreload" crossorigin href="./assets/useDebounce-B_ccBZTp.js">
+    <link rel="modulepreload" crossorigin href="./assets/input-BoBxR50a.js">
+    <link rel="modulepreload" crossorigin href="./assets/use-toast-Wu434mLr.js">
+    <link rel="modulepreload" crossorigin href="./assets/requests-lt0JK8Jt.js">
+    <link rel="modulepreload" crossorigin href="./assets/uuid-k9DpjH68.js">
+    <link rel="modulepreload" crossorigin href="./assets/write-secret-modal-DzKAInL2.js">
+    <link rel="modulepreload" crossorigin href="./assets/plus-C5silF6g.js">
+    <link rel="modulepreload" crossorigin href="./assets/trash-2-DcgaW8fn.js">
+    <link rel="modulepreload" crossorigin href="./assets/preload-helper-uBIymjUX.js">
+    <link rel="modulepreload" crossorigin href="./assets/dist-Cny7_yZb.js">
+    <link rel="modulepreload" crossorigin href="./assets/dist-DBMV4gqt.js">
+    <link rel="modulepreload" crossorigin href="./assets/capabilities-BJvf-MD4.js">
+    <link rel="modulepreload" crossorigin href="./assets/cjs-C49f7GXV.js">
+    <link rel="modulepreload" crossorigin href="./assets/createReducer-DgRODTW6.js">
+    <link rel="modulepreload" crossorigin href="./assets/dist-qhAY4L2r.js">
+    <link rel="modulepreload" crossorigin href="./assets/marked.esm-B_3iMIUq.js">
+    <link rel="modulepreload" crossorigin href="./assets/strings-B2vv-ENv.js">
+    <link rel="modulepreload" crossorigin href="./assets/dist-BOfh4hMd.js">
+    <link rel="modulepreload" crossorigin href="./assets/badge-crT3E0Rm.js">
+    <link rel="modulepreload" crossorigin href="./assets/dist-DtH-7lot.js">
+    <link rel="modulepreload" crossorigin href="./assets/dist-BmExfiwX.js">
+    <link rel="modulepreload" crossorigin href="./assets/dist-1tmpVXyz.js">
+    <link rel="modulepreload" crossorigin href="./assets/dist-LSsCJjA3.js">
+    <link rel="modulepreload" crossorigin href="./assets/dist-DusFODSa.js">
+    <link rel="modulepreload" crossorigin href="./assets/stex-Dc5bKD4z.js">
+    <link rel="modulepreload" crossorigin href="./assets/useTheme-COhSHkCj.js">
+    <link rel="modulepreload" crossorigin href="./assets/useAsyncData-C7aJJz0Y.js">
+    <link rel="modulepreload" crossorigin href="./assets/purify.es--06brOip.js">
+    <link rel="modulepreload" crossorigin href="./assets/cells-BRkCaSsh.js">
+    <link rel="modulepreload" crossorigin href="./assets/coerce-CpE6kUdX.js">
+    <link rel="modulepreload" crossorigin href="./assets/get-DjNf4SIX.js">
+    <link rel="modulepreload" crossorigin href="./assets/_hasPath-BmRQipI0.js">
+    <link rel="modulepreload" crossorigin href="./assets/hasIn-yw4sIeJR.js">
+    <link rel="modulepreload" crossorigin href="./assets/_baseSet-Bpdo9AvU.js">
+    <link rel="modulepreload" crossorigin href="./assets/pick-DKIID_Mo.js">
+    <link rel="modulepreload" crossorigin href="./assets/state-BAJYRhmO.js">
+    <link rel="modulepreload" crossorigin href="./assets/state-C3oDoyFe.js">
+    <link rel="modulepreload" crossorigin href="./assets/LazyAnyLanguageCodeMirror-CKcCbG2G.js">
+    <link rel="modulepreload" crossorigin href="./assets/copy-D8O_CYCG.js">
+    <link rel="modulepreload" crossorigin href="./assets/micromark-factory-space-D9Dr-k4J.js">
+    <link rel="modulepreload" crossorigin href="./assets/chunk-YOKDWASO-BIpRENEC.js">
+    <link rel="modulepreload" crossorigin href="./assets/markdown-renderer-BG3sp2rs.js">
+    <link rel="modulepreload" crossorigin href="./assets/copy-Djr5m5ac.js">
+    <link rel="modulepreload" crossorigin href="./assets/copy-icon-BIiRXh_3.js">
+    <link rel="modulepreload" crossorigin href="./assets/useRunCells-B2vUhREg.js">
+    <link rel="modulepreload" crossorigin href="./assets/RenderHTML-BbOqmHy3.js">
+    <link rel="modulepreload" crossorigin href="./assets/blob-D5nfNHOo.js">
+    <link rel="modulepreload" crossorigin href="./assets/kbd-pdKBv96t.js">
+    <link rel="modulepreload" crossorigin href="./assets/useInstallPackage-iX1eufdl.js">
+    <link rel="modulepreload" crossorigin href="./assets/errors-DCrsa1nH.js">
+    <link rel="modulepreload" crossorigin href="./assets/api-BeC_VSGv.js">
+    <link rel="modulepreload" crossorigin href="./assets/share-BZW3tzEX.js">
+    <link rel="modulepreload" crossorigin href="./assets/events-CbeVJ6OD.js">
+    <link rel="modulepreload" crossorigin href="./assets/state-_Qai_QyX.js">
+    <link rel="modulepreload" crossorigin href="./assets/pair-CaQyK6En.js">
+    <link rel="modulepreload" crossorigin href="./assets/ErrorBoundary-Gl5nCA8C.js">
+    <link rel="modulepreload" crossorigin href="./assets/config-BOKzA3tF.js">
+    <link rel="modulepreload" crossorigin href="./assets/chevron-right-eAtVhbNZ.js">
+    <link rel="modulepreload" crossorigin href="./assets/dropdown-menu-C1rnl-0o.js">
+    <link rel="modulepreload" crossorigin href="./assets/html-to-image-DK9Zl1lU.js">
+    <link rel="modulepreload" crossorigin href="./assets/download-DCJXy66H.js">
+    <link rel="modulepreload" crossorigin href="./assets/switch-CTaiAjrz.js">
+    <link rel="modulepreload" crossorigin href="./assets/tabs-BuQlZFbt.js">
+    <link rel="modulepreload" crossorigin href="./assets/table-DG7Ap4H4.js">
+    <link rel="modulepreload" crossorigin href="./assets/eye-off-CxVozGAC.js">
+    <link rel="modulepreload" crossorigin href="./assets/refresh-cw-Qw1f8Jhy.js">
+    <link rel="modulepreload" crossorigin href="./assets/tree-actions-GM5E_bUs.js">
+    <link rel="modulepreload" crossorigin href="./assets/ellipsis-63DyBLHQ.js">
+    <link rel="modulepreload" crossorigin href="./assets/external-link-UrX9KO36.js">
+    <link rel="modulepreload" crossorigin href="./assets/spinner-DyNE-o8o.js">
+    <link rel="modulepreload" crossorigin href="./assets/message-circle-C3rKm8_a.js">
+    <link rel="modulepreload" crossorigin href="./assets/hat-glasses-C8RhSVii.js">
+    <link rel="modulepreload" crossorigin href="./assets/package-GSoSTiIK.js">
+    <link rel="modulepreload" crossorigin href="./assets/datasource-Cq6x_5ML.js">
+    <link rel="modulepreload" crossorigin href="./assets/alert-DTaqCu_d.js">
+    <link rel="modulepreload" crossorigin href="./assets/state-XsPO8hNi.js">
+    <link rel="modulepreload" crossorigin href="./assets/cell-link-LSth_8hT.js">
+    <link rel="modulepreload" crossorigin href="./assets/MarimoErrorOutput-D60XkCny.js">
+    <link rel="modulepreload" crossorigin href="./assets/useDateFormatter-DA-62E-Y.js">
+    <link rel="modulepreload" crossorigin href="./assets/en-US-Buu61juQ.js">
+    <link rel="modulepreload" crossorigin href="./assets/isValid-q_Ad80ug.js">
+    <link rel="modulepreload" crossorigin href="./assets/dates-BbFQ2oE4.js">
+    <link rel="modulepreload" crossorigin href="./assets/defaultLocale-CNPGWpMu.js">
+    <link rel="modulepreload" crossorigin href="./assets/precisionRound-Bq_nmf5u.js">
+    <link rel="modulepreload" crossorigin href="./assets/defaultLocale-D5bOh7g6.js">
+    <link rel="modulepreload" crossorigin href="./assets/vega-loader.browser-CLRkNgm7.js">
+    <link rel="modulepreload" crossorigin href="./assets/tooltip-mT3CGest.js">
+    <link rel="modulepreload" crossorigin href="./assets/react-icons.esm-D6tfmvq8.js">
+    <link rel="modulepreload" crossorigin href="./assets/extends-CvVTau-c.js">
+    <link rel="modulepreload" crossorigin href="./assets/objectWithoutPropertiesLoose-Do6ywDBO.js">
+    <link rel="modulepreload" crossorigin href="./assets/useIframeCapabilities-CwTkczVN.js">
+    <link rel="modulepreload" crossorigin href="./assets/error-banner-Cd69vvyX.js">
+    <link rel="modulepreload" crossorigin href="./assets/utils-CaQYvazl.js">
+    <link rel="modulepreload" crossorigin href="./assets/formats-yZ06h1Pl.js">
+    <link rel="modulepreload" crossorigin href="./assets/table-vrvqpuKJ.js">
+    <link rel="modulepreload" crossorigin href="./assets/react-resizable-panels.browser.esm-Dbe0MrFr.js">
+    <link rel="modulepreload" crossorigin href="./assets/JsonOutput-D6HIIsCb.js">
+    <link rel="modulepreload" crossorigin href="./assets/chart-no-axes-column-C4_v6fQW.js">
+    <link rel="modulepreload" crossorigin href="./assets/square-function-_W_Lo0P4.js">
+    <link rel="modulepreload" crossorigin href="./assets/spec-BfSBcO5B.js">
+    <link rel="modulepreload" crossorigin href="./assets/semaphore-BjoL5P0h.js">
+    <link rel="modulepreload" crossorigin href="./assets/fileToBase64-BgBraYAr.js">
+    <link rel="modulepreload" crossorigin href="./assets/useBoolean-BDD6_xQQ.js">
+    <link rel="modulepreload" crossorigin href="./assets/code-xml-SQaZqvcO.js">
+    <link rel="modulepreload" crossorigin href="./assets/file-headphone-Dl35U6h3.js">
+    <link rel="modulepreload" crossorigin href="./assets/file-BPBVl9pl.js">
+    <link rel="modulepreload" crossorigin href="./assets/image-wZvTj8WY.js">
+    <link rel="modulepreload" crossorigin href="./assets/file-icons-CdJgUy-I.js">
+    <link rel="modulepreload" crossorigin href="./assets/globe-UdPdIbF7.js">
+    <link rel="modulepreload" crossorigin href="./assets/esm-CI_o7NhW.js">
+    <link rel="modulepreload" crossorigin href="./assets/useAddCell-GR7eEQrT.js">
+    <link rel="modulepreload" crossorigin href="./assets/readonly-python-code-DCSMIsTX.js">
+    <link rel="modulepreload" crossorigin href="./assets/data-grid-types-DgHVN_Zz.js">
+    <link rel="modulepreload" crossorigin href="./assets/glide-utils-CIrAxdjv.js">
+    <link rel="modulepreload" crossorigin href="./assets/column-preview-Cm2D6vyX.js">
+    <link rel="modulepreload" crossorigin href="./assets/square-BPmgQFnh.js">
+    <link rel="modulepreload" crossorigin href="./assets/triangle-alert-DmIqR8sY.js">
+    <link rel="modulepreload" crossorigin href="./assets/prop-types-Djf4O40e.js">
+    <link rel="modulepreload" crossorigin href="./assets/es-Cqst59WX.js">
+    <link rel="modulepreload" crossorigin href="./assets/package-data-dv4FBHxR.js">
+    <link rel="modulepreload" crossorigin href="./assets/markdown-export-DzhB1FrN.js">
+    <link rel="modulepreload" crossorigin href="./assets/renderShortcut-BkVJQ_Zh.js">
+    <link rel="modulepreload" crossorigin href="./assets/bundle.esm-D3tw5rqW.js">
+    <link rel="modulepreload" crossorigin href="./assets/icons-CiZ_8zS-.js">
+    <link rel="modulepreload" crossorigin href="./assets/useDeepCompareMemoize-DFIVN9dn.js">
+    <link rel="modulepreload" crossorigin href="./assets/pathUtils-DPmlLd-r.js">
+    <link rel="modulepreload" crossorigin href="./assets/floating-outline-XD9FAV-f.js">
+    <link rel="stylesheet" crossorigin href="./assets/cells-0PFKL3SH.css">
+    <link rel="stylesheet" crossorigin href="./assets/markdown-renderer-DjIHoF9Z.css">
+    <link rel="stylesheet" crossorigin href="./assets/JsonOutput-B0GmlMnR.css">
+    <link rel="stylesheet" crossorigin href="./assets/index-Bcdzex-3.css">
+  <marimo-wasm hidden=""></marimo-wasm>
+    <script>
+        if (window.location.protocol === 'file:') {
+            alert('Warning: This file must be served by an HTTP server to function correctly.');
+        }
+    </script>
+    
+    <style>
+        #save-button {
+            display: none !important;
+        }
+        #filename-input {
+            display: none !important;
+        }
+    </style>
+    
+<script data-marimo="true">
+    Object.defineProperty(window, "__MARIMO_EXPORT_CONTEXT__", {
+        value: Object.freeze({
+            trusted: true,
+            notebookCode: "# CAI 5735 Final Project - interactive app\n# Group members: Ryan Merlino, [MEMBER 2], [MEMBER 3]\n# GitHub repository: https://github.com/ryanmerlino21-debug/cai5735-final-project\n\nimport marimo\n\n__generated_with = \"0.25.2\"\napp = marimo.App(width=\"medium\", app_title=\"Predicting Diabetes Readmission\")\n\n\n@app.cell\ndef _():\n    import marimo as mo\n    import numpy as np\n    import pandas as pd\n    import matplotlib.pyplot as plt\n    from sklearn.model_selection import train_test_split\n    from sklearn.preprocessing import StandardScaler\n    from sklearn.pipeline import make_pipeline\n    from sklearn.linear_model import LogisticRegression\n    from sklearn.tree import DecisionTreeClassifier\n    from sklearn.ensemble import RandomForestClassifier\n    from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score\n\n    df = pd.read_csv(str(mo.notebook_location() / \"public\" / \"diabetes_130.csv\"))\n    X = df[[\"time_in_hospital\", \"num_lab_procedures\", \"num_procedures\",\n            \"num_medications\", \"number_diagnoses\"]].copy()\n    X[\"diabetes_med\"] = (df[\"diabetes_med\"] == \"Yes\").astype(int)\n    y = (df[\"readmitted\"] != \"Not readmitted\").astype(int)\n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.25, stratify=y, random_state=42)\n    models = {\n        \"Logistic regression\": make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000)),\n        \"Decision tree\": DecisionTreeClassifier(max_depth=4, min_samples_leaf=30, random_state=42),\n        \"Random forest\": RandomForestClassifier(n_estimators=200, max_depth=6,\n                                                min_samples_leaf=20, random_state=42),\n    }\n    for _m in models.values():\n        _m.fit(X_train, y_train)\n    probs = {n: m.predict_proba(X_test)[:, 1] for n, m in models.items()}\n    aucs = {n: roc_auc_score(y_test, p) for n, p in probs.items()}\n    return (\n        X,\n        aucs,\n        confusion_matrix,\n        df,\n        mo,\n        models,\n        np,\n        pd,\n        plt,\n        probs,\n        roc_curve,\n        y,\n        y_test,\n    )\n\n\n@app.cell\ndef _(mo):\n    mo.md(r\"\"\"\n    # Can we predict who comes back to the hospital?\n    *CAI 5735 Final Project - Ryan Merlino, [MEMBER 2], [MEMBER 3]*\n\n    ## Research question\n    \u003E **How accurately can a diabetes patient's length of stay, number of lab tests,\n    \u003E procedures, medications and diagnoses, plus whether they were prescribed a diabetes\n    \u003E medication, predict whether they will be readmitted to the hospital?**\n\n    **The problem.** Hospitals try to prevent avoidable readmissions, which are bad for\n    patients and costly (US hospitals are financially penalised for excess readmissions).\n    If a model could flag high-risk patients before discharge, staff could focus follow-up\n    calls, medication reviews and home care on them. We test how far a few simple numbers\n    recorded *during the stay* can take us.\n    \"\"\")\n    return\n\n\n@app.cell\ndef _(mo):\n    mo.md(r\"\"\"\n    ## The dataset\n    **Source:** *Diabetes 130-US Hospitals for Years 1999-2008*, UCI Machine Learning\n    Repository. Strack et al. (2014), *Impact of HbA1c measurement on hospital readmission\n    rates*, BioMed Research International. https://doi.org/10.24432/C5230J.\n    Our copy is a simplified **3,000-stay** sample (from 130 hospitals) supplied by the course.\n\n    | Column | Role | Meaning |\n    |---|---|---|\n    | `readmitted` | **Response** | Came back to the hospital? (we use: yes / no) |\n    | `time_in_hospital` | Predictor | Days in hospital |\n    | `num_lab_procedures` | Predictor | Lab tests during the stay |\n    | `num_procedures` | Predictor | Non-lab procedures |\n    | `num_medications` | Predictor | Distinct medications given |\n    | `number_diagnoses` | Predictor | Diagnoses recorded |\n    | `diabetes_med` | Predictor | Prescribed a diabetes medication (yes / no) |\n    | age, gender, admission_type | Not used | Left out to focus on in-stay measurements |\n    \"\"\")\n    return\n\n\n@app.cell\ndef _(df, mo):\n    _counts = df[\"readmitted\"].value_counts()\n    mo.md(f\"\"\"\n    The original outcome has three levels: not readmitted ({_counts['Not readmitted']}),\n    after 30 days ({_counts['After 30 days']}), within 30 days ({_counts['Within 30 days']}).\n    Because our question is *whether* a patient returns, we merge the last two into\n    **readmitted** ({_counts['After 30 days'] + _counts['Within 30 days']} stays, 40%). No values are missing.\n    \"\"\")\n    return\n\n\n@app.cell\ndef _(mo):\n    mo.md(r\"\"\"\n    ## Explore the data\n    Pick a variable to see how its distribution differs between readmitted and\n    not-readmitted stays. The differences are small, which already hints at the result.\n    \"\"\")\n    return\n\n\n@app.cell\ndef _(mo):\n    var = mo.ui.dropdown(\n        [\"time_in_hospital\", \"num_lab_procedures\", \"num_procedures\",\n         \"num_medications\", \"number_diagnoses\"],\n        value=\"num_medications\", label=\"Variable\")\n    var\n    return (var,)\n\n\n@app.cell\ndef _(df, np, plt, var, y):\n    fig, ax = plt.subplots(figsize=(7, 3.4))\n    _lo, _hi = df[var.value].min(), df[var.value].max()\n    _bins = np.linspace(_lo, _hi + 1, min(25, int(_hi - _lo) + 2))\n    ax.hist(df.loc[y == 0, var.value], bins=_bins, alpha=.6, density=True,\n            label=\"Not readmitted\", color=\"#4C78A8\")\n    ax.hist(df.loc[y == 1, var.value], bins=_bins, alpha=.6, density=True,\n            label=\"Readmitted\", color=\"#E45756\")\n    ax.set_xlabel(var.value); ax.set_ylabel(\"Share of stays\"); ax.legend()\n    _m0, _m1 = df.loc[y == 0, var.value].mean(), df.loc[y == 1, var.value].mean()\n    ax.set_title(f\"Mean: not readmitted {_m0:.2f} vs readmitted {_m1:.2f}\")\n    fig.tight_layout()\n    fig\n    return\n\n\n@app.cell\ndef _(mo):\n    mo.md(r\"\"\"\n    ## Analysis process\n    1. **Split:** 75% training / 25% test (stratified, `random_state=42`). Every number below\n       comes from the 750 held-out test stays.\n    2. **Three models:** logistic regression (interpretable baseline), a depth-4 decision\n       tree, and a random forest of trees.\n    3. **Evaluate** each with a confusion matrix, accuracy, sensitivity (share of real\n       readmissions caught), specificity (share of non-readmissions correctly cleared), and\n       the ROC curve / AUROC.\n\n    Use the controls to explore a model and threshold. The **threshold** is the predicted\n    probability above which we label a patient \"readmitted\".\n    \"\"\")\n    return\n\n\n@app.cell\ndef _(mo, models):\n    model_pick = mo.ui.dropdown(list(models), value=\"Random forest\", label=\"Model\")\n    thr = mo.ui.slider(0.10, 0.70, step=0.01, value=0.40, label=\"Threshold\", show_value=True)\n    mo.hstack([model_pick, thr], justify=\"start\", gap=2)\n    return model_pick, thr\n\n\n@app.cell\ndef _(\n    aucs,\n    confusion_matrix,\n    mo,\n    model_pick,\n    np,\n    plt,\n    probs,\n    roc_curve,\n    thr,\n    y_test,\n):\n    _p = probs[model_pick.value]\n    _pred = (_p \u003E= thr.value).astype(int)\n    _tn, _fp, _fn, _tp = confusion_matrix(y_test, _pred).ravel()\n    _acc = (_tp + _tn) / len(y_test)\n    _sens = _tp / (_tp + _fn); _spec = _tn / (_tn + _fp)\n\n    _fig, (_a1, _a2) = plt.subplots(1, 2, figsize=(10, 4))\n    _cm = np.array([[_tn, _fp], [_fn, _tp]])\n    _a1.imshow(_cm, cmap=\"Blues\")\n    for (_i, _j), _v in np.ndenumerate(_cm):\n        _a1.text(_j, _i, _v, ha=\"center\", va=\"center\", fontsize=16,\n                 color=\"white\" if _v \u003E _cm.max() / 2 else \"black\")\n    _a1.set_xticks([0, 1], [\"Not readm.\", \"Readmitted\"])\n    _a1.set_yticks([0, 1], [\"Not readm.\", \"Readmitted\"])\n    _a1.set_xlabel(\"Predicted\"); _a1.set_ylabel(\"Actual\"); _a1.set_title(\"Confusion matrix (test set)\")\n\n    for _n, _pp in probs.items():\n        _f, _t, _ = roc_curve(y_test, _pp)\n        _a2.plot(_f, _t, lw=2.5 if _n == model_pick.value else 1,\n                 alpha=1 if _n == model_pick.value else .4, label=f\"{_n} ({aucs[_n]:.3f})\")\n    _a2.plot([0, 1], [0, 1], \"k--\", lw=1)\n    _a2.scatter([1 - _spec], [_sens], s=90, color=\"red\", zorder=5, label=\"Current threshold\")\n    _a2.set_xlabel(\"False positive rate\"); _a2.set_ylabel(\"Sensitivity\")\n    _a2.set_title(\"ROC curves (AUROC)\"); _a2.legend(fontsize=8, loc=\"lower right\")\n    _fig.tight_layout()\n\n    mo.vstack([\n        mo.hstack([mo.stat(f\"{_acc:.1%}\", label=\"Accuracy\"),\n                   mo.stat(f\"{_sens:.1%}\", label=\"Sensitivity\"),\n                   mo.stat(f\"{_spec:.1%}\", label=\"Specificity\"),\n                   mo.stat(f\"{aucs[model_pick.value]:.3f}\", label=\"AUROC\")]),\n        _fig,\n    ])\n    return\n\n\n@app.cell\ndef _(aucs, mo):\n    mo.md(f\"\"\"\n    ### Model comparison (test set, threshold 0.5)\n    | Model | Accuracy | Sensitivity | Specificity | AUROC |\n    |---|---|---|---|---|\n    | Logistic regression | 0.583 | 0.157 | 0.867 | {aucs['Logistic regression']:.3f} |\n    | Decision tree | 0.604 | 0.300 | 0.807 | {aucs['Decision tree']:.3f} |\n    | Random forest | 0.613 | 0.213 | 0.880 | {aucs['Random forest']:.3f} |\n\n    **Which is best?** The **random forest** has the top AUROC and accuracy, so it is our\n    pick, but the three models are nearly tied (AUROC about 0.59). Logistic regression is\n    a reasonable alternative because it is simpler to explain. At 0.5 every model has very\n    low sensitivity: they mostly guess \"not readmitted\", and 60% of stays are not readmitted,\n    so 60% accuracy is the baseline to beat.\n\n    **Threshold.** Missing a patient who comes back is worse than an unnecessary follow-up\n    call, so we want higher sensitivity. For the random forest, **0.40** maximises Youden's J\n    (sensitivity 0.66, specificity 0.48). Drag the slider to see the trade-off: below about\n    0.35 almost every patient is flagged, and above 0.5 almost nobody is.\n    \"\"\")\n    return\n\n\n@app.cell\ndef _(mo):\n    mo.md(r\"\"\"\n    ## Try it: classify a new patient\n    Enter a patient's stay details and see each model's predicted chance of readmission.\n    \"\"\")\n    return\n\n\n@app.cell\ndef _(mo):\n    s_days = mo.ui.slider(1, 14, value=7, label=\"Days in hospital\", show_value=True)\n    s_lab = mo.ui.slider(1, 130, value=55, label=\"Lab tests\", show_value=True)\n    s_proc = mo.ui.slider(0, 6, value=2, label=\"Procedures\", show_value=True)\n    s_med = mo.ui.slider(1, 80, value=20, label=\"Medications\", show_value=True)\n    s_diag = mo.ui.slider(1, 16, value=8, label=\"Diagnoses\", show_value=True)\n    s_dm = mo.ui.checkbox(value=True, label=\"Prescribed a diabetes medication\")\n    mo.vstack([mo.hstack([s_days, s_lab, s_proc], justify=\"start\"),\n               mo.hstack([s_med, s_diag, s_dm], justify=\"start\")])\n    return s_days, s_diag, s_dm, s_lab, s_med, s_proc\n\n\n@app.cell\ndef _(X, mo, models, pd, s_days, s_diag, s_dm, s_lab, s_med, s_proc, thr):\n    _pt = pd.DataFrame([{\n        \"time_in_hospital\": s_days.value, \"num_lab_procedures\": s_lab.value,\n        \"num_procedures\": s_proc.value, \"num_medications\": s_med.value,\n        \"number_diagnoses\": s_diag.value, \"diabetes_med\": int(s_dm.value)}])[X.columns]\n    _rows = \"\"\n    for _n, _m in models.items():\n        _pr = _m.predict_proba(_pt)[0, 1]\n        _rows += (f\"| {_n} | {_pr:.0%} | \"\n                  f\"{'**Readmitted**' if _pr \u003E= thr.value else 'Not readmitted'} |\\n\")\n    mo.md(f\"\"\"\n    | Model | P(readmitted) | Prediction at threshold {thr.value:.2f} |\n    |---|---|---|\n    {_rows}\n    \"\"\")\n    return\n\n\n@app.cell\ndef _(mo):\n    mo.md(r\"\"\"\n    ## Results and conclusion\n    **Answer:** *not very accurately.* With these six variables, our best model (random\n    forest) reaches an **AUROC of about 0.59**, where 0.5 is a coin flip and 1.0 is perfect.\n    Its 61% accuracy at threshold 0.5 barely beats always predicting \"not readmitted\" (60%).\n    Lowering the threshold to 0.40 catches about two-thirds of readmissions, but only by\n    wrongly flagging about half of the patients who do not return.\n\n    **What this means.** Counts recorded during the stay (days, tests, medications) are only\n    weakly related to coming back. Better predictors probably include prior admissions,\n    discharge destination and lab results like HbA1c, none of which are in this simplified\n    file. As it stands, the model could be a rough screening aid, but it should not drive\n    decisions about individual patients.\n\n    **Limitations.** A 3,000-row sample, one random split (results vary by about\n    +/- 0.02 AUROC), no tuning of hyperparameters, and data from 1999-2008.\n    \"\"\")\n    return\n\n\nif __name__ == \"__main__\":\n    app.run()\n",
+        }),
+        writable: false,
+        configurable: false,
+    });
+</script>
+<marimo-code hidden="">%23%20CAI%205735%20Final%20Project%20-%20interactive%20app%0A%23%20Group%20members%3A%20Ryan%20Merlino%2C%20%5BMEMBER%202%5D%2C%20%5BMEMBER%203%5D%0A%23%20GitHub%20repository%3A%20https%3A%2F%2Fgithub.com%2Fryanmerlino21-debug%2Fcai5735-final-project%0A%0Aimport%20marimo%0A%0A__generated_with%20%3D%20%220.25.2%22%0Aapp%20%3D%20marimo.App(width%3D%22medium%22%2C%20app_title%3D%22Predicting%20Diabetes%20Readmission%22)%0A%0A%0A%40app.cell%0Adef%20_()%3A%0A%20%20%20%20import%20marimo%20as%20mo%0A%20%20%20%20import%20numpy%20as%20np%0A%20%20%20%20import%20pandas%20as%20pd%0A%20%20%20%20import%20matplotlib.pyplot%20as%20plt%0A%20%20%20%20from%20sklearn.model_selection%20import%20train_test_split%0A%20%20%20%20from%20sklearn.preprocessing%20import%20StandardScaler%0A%20%20%20%20from%20sklearn.pipeline%20import%20make_pipeline%0A%20%20%20%20from%20sklearn.linear_model%20import%20LogisticRegression%0A%20%20%20%20from%20sklearn.tree%20import%20DecisionTreeClassifier%0A%20%20%20%20from%20sklearn.ensemble%20import%20RandomForestClassifier%0A%20%20%20%20from%20sklearn.metrics%20import%20confusion_matrix%2C%20roc_curve%2C%20roc_auc_score%0A%0A%20%20%20%20df%20%3D%20pd.read_csv(str(mo.notebook_location()%20%2F%20%22public%22%20%2F%20%22diabetes_130.csv%22))%0A%20%20%20%20X%20%3D%20df%5B%5B%22time_in_hospital%22%2C%20%22num_lab_procedures%22%2C%20%22num_procedures%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%22num_medications%22%2C%20%22number_diagnoses%22%5D%5D.copy()%0A%20%20%20%20X%5B%22diabetes_med%22%5D%20%3D%20(df%5B%22diabetes_med%22%5D%20%3D%3D%20%22Yes%22).astype(int)%0A%20%20%20%20y%20%3D%20(df%5B%22readmitted%22%5D%20!%3D%20%22Not%20readmitted%22).astype(int)%0A%20%20%20%20X_train%2C%20X_test%2C%20y_train%2C%20y_test%20%3D%20train_test_split(%0A%20%20%20%20%20%20%20%20X%2C%20y%2C%20test_size%3D0.25%2C%20stratify%3Dy%2C%20random_state%3D42)%0A%20%20%20%20models%20%3D%20%7B%0A%20%20%20%20%20%20%20%20%22Logistic%20regression%22%3A%20make_pipeline(StandardScaler()%2C%20LogisticRegression(max_iter%3D1000))%2C%0A%20%20%20%20%20%20%20%20%22Decision%20tree%22%3A%20DecisionTreeClassifier(max_depth%3D4%2C%20min_samples_leaf%3D30%2C%20random_state%3D42)%2C%0A%20%20%20%20%20%20%20%20%22Random%20forest%22%3A%20RandomForestClassifier(n_estimators%3D200%2C%20max_depth%3D6%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20min_samples_leaf%3D20%2C%20random_state%3D42)%2C%0A%20%20%20%20%7D%0A%20%20%20%20for%20_m%20in%20models.values()%3A%0A%20%20%20%20%20%20%20%20_m.fit(X_train%2C%20y_train)%0A%20%20%20%20probs%20%3D%20%7Bn%3A%20m.predict_proba(X_test)%5B%3A%2C%201%5D%20for%20n%2C%20m%20in%20models.items()%7D%0A%20%20%20%20aucs%20%3D%20%7Bn%3A%20roc_auc_score(y_test%2C%20p)%20for%20n%2C%20p%20in%20probs.items()%7D%0A%20%20%20%20return%20(%0A%20%20%20%20%20%20%20%20X%2C%0A%20%20%20%20%20%20%20%20aucs%2C%0A%20%20%20%20%20%20%20%20confusion_matrix%2C%0A%20%20%20%20%20%20%20%20df%2C%0A%20%20%20%20%20%20%20%20mo%2C%0A%20%20%20%20%20%20%20%20models%2C%0A%20%20%20%20%20%20%20%20np%2C%0A%20%20%20%20%20%20%20%20pd%2C%0A%20%20%20%20%20%20%20%20plt%2C%0A%20%20%20%20%20%20%20%20probs%2C%0A%20%20%20%20%20%20%20%20roc_curve%2C%0A%20%20%20%20%20%20%20%20y%2C%0A%20%20%20%20%20%20%20%20y_test%2C%0A%20%20%20%20)%0A%0A%0A%40app.cell%0Adef%20_(mo)%3A%0A%20%20%20%20mo.md(r%22%22%22%0A%20%20%20%20%23%20Can%20we%20predict%20who%20comes%20back%20to%20the%20hospital%3F%0A%20%20%20%20*CAI%205735%20Final%20Project%20-%20Ryan%20Merlino%2C%20%5BMEMBER%202%5D%2C%20%5BMEMBER%203%5D*%0A%0A%20%20%20%20%23%23%20Research%20question%0A%20%20%20%20%3E%20**How%20accurately%20can%20a%20diabetes%20patient's%20length%20of%20stay%2C%20number%20of%20lab%20tests%2C%0A%20%20%20%20%3E%20procedures%2C%20medications%20and%20diagnoses%2C%20plus%20whether%20they%20were%20prescribed%20a%20diabetes%0A%20%20%20%20%3E%20medication%2C%20predict%20whether%20they%20will%20be%20readmitted%20to%20the%20hospital%3F**%0A%0A%20%20%20%20**The%20problem.**%20Hospitals%20try%20to%20prevent%20avoidable%20readmissions%2C%20which%20are%20bad%20for%0A%20%20%20%20patients%20and%20costly%20(US%20hospitals%20are%20financially%20penalised%20for%20excess%20readmissions).%0A%20%20%20%20If%20a%20model%20could%20flag%20high-risk%20patients%20before%20discharge%2C%20staff%20could%20focus%20follow-up%0A%20%20%20%20calls%2C%20medication%20reviews%20and%20home%20care%20on%20them.%20We%20test%20how%20far%20a%20few%20simple%20numbers%0A%20%20%20%20recorded%20*during%20the%20stay*%20can%20take%20us.%0A%20%20%20%20%22%22%22)%0A%20%20%20%20return%0A%0A%0A%40app.cell%0Adef%20_(mo)%3A%0A%20%20%20%20mo.md(r%22%22%22%0A%20%20%20%20%23%23%20The%20dataset%0A%20%20%20%20**Source%3A**%20*Diabetes%20130-US%20Hospitals%20for%20Years%201999-2008*%2C%20UCI%20Machine%20Learning%0A%20%20%20%20Repository.%20Strack%20et%20al.%20(2014)%2C%20*Impact%20of%20HbA1c%20measurement%20on%20hospital%20readmission%0A%20%20%20%20rates*%2C%20BioMed%20Research%20International.%20https%3A%2F%2Fdoi.org%2F10.24432%2FC5230J.%0A%20%20%20%20Our%20copy%20is%20a%20simplified%20**3%2C000-stay**%20sample%20(from%20130%20hospitals)%20supplied%20by%20the%20course.%0A%0A%20%20%20%20%7C%20Column%20%7C%20Role%20%7C%20Meaning%20%7C%0A%20%20%20%20%7C---%7C---%7C---%7C%0A%20%20%20%20%7C%20%60readmitted%60%20%7C%20**Response**%20%7C%20Came%20back%20to%20the%20hospital%3F%20(we%20use%3A%20yes%20%2F%20no)%20%7C%0A%20%20%20%20%7C%20%60time_in_hospital%60%20%7C%20Predictor%20%7C%20Days%20in%20hospital%20%7C%0A%20%20%20%20%7C%20%60num_lab_procedures%60%20%7C%20Predictor%20%7C%20Lab%20tests%20during%20the%20stay%20%7C%0A%20%20%20%20%7C%20%60num_procedures%60%20%7C%20Predictor%20%7C%20Non-lab%20procedures%20%7C%0A%20%20%20%20%7C%20%60num_medications%60%20%7C%20Predictor%20%7C%20Distinct%20medications%20given%20%7C%0A%20%20%20%20%7C%20%60number_diagnoses%60%20%7C%20Predictor%20%7C%20Diagnoses%20recorded%20%7C%0A%20%20%20%20%7C%20%60diabetes_med%60%20%7C%20Predictor%20%7C%20Prescribed%20a%20diabetes%20medication%20(yes%20%2F%20no)%20%7C%0A%20%20%20%20%7C%20age%2C%20gender%2C%20admission_type%20%7C%20Not%20used%20%7C%20Left%20out%20to%20focus%20on%20in-stay%20measurements%20%7C%0A%20%20%20%20%22%22%22)%0A%20%20%20%20return%0A%0A%0A%40app.cell%0Adef%20_(df%2C%20mo)%3A%0A%20%20%20%20_counts%20%3D%20df%5B%22readmitted%22%5D.value_counts()%0A%20%20%20%20mo.md(f%22%22%22%0A%20%20%20%20The%20original%20outcome%20has%20three%20levels%3A%20not%20readmitted%20(%7B_counts%5B'Not%20readmitted'%5D%7D)%2C%0A%20%20%20%20after%2030%20days%20(%7B_counts%5B'After%2030%20days'%5D%7D)%2C%20within%2030%20days%20(%7B_counts%5B'Within%2030%20days'%5D%7D).%0A%20%20%20%20Because%20our%20question%20is%20*whether*%20a%20patient%20returns%2C%20we%20merge%20the%20last%20two%20into%0A%20%20%20%20**readmitted**%20(%7B_counts%5B'After%2030%20days'%5D%20%2B%20_counts%5B'Within%2030%20days'%5D%7D%20stays%2C%2040%25).%20No%20values%20are%20missing.%0A%20%20%20%20%22%22%22)%0A%20%20%20%20return%0A%0A%0A%40app.cell%0Adef%20_(mo)%3A%0A%20%20%20%20mo.md(r%22%22%22%0A%20%20%20%20%23%23%20Explore%20the%20data%0A%20%20%20%20Pick%20a%20variable%20to%20see%20how%20its%20distribution%20differs%20between%20readmitted%20and%0A%20%20%20%20not-readmitted%20stays.%20The%20differences%20are%20small%2C%20which%20already%20hints%20at%20the%20result.%0A%20%20%20%20%22%22%22)%0A%20%20%20%20return%0A%0A%0A%40app.cell%0Adef%20_(mo)%3A%0A%20%20%20%20var%20%3D%20mo.ui.dropdown(%0A%20%20%20%20%20%20%20%20%5B%22time_in_hospital%22%2C%20%22num_lab_procedures%22%2C%20%22num_procedures%22%2C%0A%20%20%20%20%20%20%20%20%20%22num_medications%22%2C%20%22number_diagnoses%22%5D%2C%0A%20%20%20%20%20%20%20%20value%3D%22num_medications%22%2C%20label%3D%22Variable%22)%0A%20%20%20%20var%0A%20%20%20%20return%20(var%2C)%0A%0A%0A%40app.cell%0Adef%20_(df%2C%20np%2C%20plt%2C%20var%2C%20y)%3A%0A%20%20%20%20fig%2C%20ax%20%3D%20plt.subplots(figsize%3D(7%2C%203.4))%0A%20%20%20%20_lo%2C%20_hi%20%3D%20df%5Bvar.value%5D.min()%2C%20df%5Bvar.value%5D.max()%0A%20%20%20%20_bins%20%3D%20np.linspace(_lo%2C%20_hi%20%2B%201%2C%20min(25%2C%20int(_hi%20-%20_lo)%20%2B%202))%0A%20%20%20%20ax.hist(df.loc%5By%20%3D%3D%200%2C%20var.value%5D%2C%20bins%3D_bins%2C%20alpha%3D.6%2C%20density%3DTrue%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20label%3D%22Not%20readmitted%22%2C%20color%3D%22%234C78A8%22)%0A%20%20%20%20ax.hist(df.loc%5By%20%3D%3D%201%2C%20var.value%5D%2C%20bins%3D_bins%2C%20alpha%3D.6%2C%20density%3DTrue%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20label%3D%22Readmitted%22%2C%20color%3D%22%23E45756%22)%0A%20%20%20%20ax.set_xlabel(var.value)%3B%20ax.set_ylabel(%22Share%20of%20stays%22)%3B%20ax.legend()%0A%20%20%20%20_m0%2C%20_m1%20%3D%20df.loc%5By%20%3D%3D%200%2C%20var.value%5D.mean()%2C%20df.loc%5By%20%3D%3D%201%2C%20var.value%5D.mean()%0A%20%20%20%20ax.set_title(f%22Mean%3A%20not%20readmitted%20%7B_m0%3A.2f%7D%20vs%20readmitted%20%7B_m1%3A.2f%7D%22)%0A%20%20%20%20fig.tight_layout()%0A%20%20%20%20fig%0A%20%20%20%20return%0A%0A%0A%40app.cell%0Adef%20_(mo)%3A%0A%20%20%20%20mo.md(r%22%22%22%0A%20%20%20%20%23%23%20Analysis%20process%0A%20%20%20%201.%20**Split%3A**%2075%25%20training%20%2F%2025%25%20test%20(stratified%2C%20%60random_state%3D42%60).%20Every%20number%20below%0A%20%20%20%20%20%20%20comes%20from%20the%20750%20held-out%20test%20stays.%0A%20%20%20%202.%20**Three%20models%3A**%20logistic%20regression%20(interpretable%20baseline)%2C%20a%20depth-4%20decision%0A%20%20%20%20%20%20%20tree%2C%20and%20a%20random%20forest%20of%20trees.%0A%20%20%20%203.%20**Evaluate**%20each%20with%20a%20confusion%20matrix%2C%20accuracy%2C%20sensitivity%20(share%20of%20real%0A%20%20%20%20%20%20%20readmissions%20caught)%2C%20specificity%20(share%20of%20non-readmissions%20correctly%20cleared)%2C%20and%0A%20%20%20%20%20%20%20the%20ROC%20curve%20%2F%20AUROC.%0A%0A%20%20%20%20Use%20the%20controls%20to%20explore%20a%20model%20and%20threshold.%20The%20**threshold**%20is%20the%20predicted%0A%20%20%20%20probability%20above%20which%20we%20label%20a%20patient%20%22readmitted%22.%0A%20%20%20%20%22%22%22)%0A%20%20%20%20return%0A%0A%0A%40app.cell%0Adef%20_(mo%2C%20models)%3A%0A%20%20%20%20model_pick%20%3D%20mo.ui.dropdown(list(models)%2C%20value%3D%22Random%20forest%22%2C%20label%3D%22Model%22)%0A%20%20%20%20thr%20%3D%20mo.ui.slider(0.10%2C%200.70%2C%20step%3D0.01%2C%20value%3D0.40%2C%20label%3D%22Threshold%22%2C%20show_value%3DTrue)%0A%20%20%20%20mo.hstack(%5Bmodel_pick%2C%20thr%5D%2C%20justify%3D%22start%22%2C%20gap%3D2)%0A%20%20%20%20return%20model_pick%2C%20thr%0A%0A%0A%40app.cell%0Adef%20_(%0A%20%20%20%20aucs%2C%0A%20%20%20%20confusion_matrix%2C%0A%20%20%20%20mo%2C%0A%20%20%20%20model_pick%2C%0A%20%20%20%20np%2C%0A%20%20%20%20plt%2C%0A%20%20%20%20probs%2C%0A%20%20%20%20roc_curve%2C%0A%20%20%20%20thr%2C%0A%20%20%20%20y_test%2C%0A)%3A%0A%20%20%20%20_p%20%3D%20probs%5Bmodel_pick.value%5D%0A%20%20%20%20_pred%20%3D%20(_p%20%3E%3D%20thr.value).astype(int)%0A%20%20%20%20_tn%2C%20_fp%2C%20_fn%2C%20_tp%20%3D%20confusion_matrix(y_test%2C%20_pred).ravel()%0A%20%20%20%20_acc%20%3D%20(_tp%20%2B%20_tn)%20%2F%20len(y_test)%0A%20%20%20%20_sens%20%3D%20_tp%20%2F%20(_tp%20%2B%20_fn)%3B%20_spec%20%3D%20_tn%20%2F%20(_tn%20%2B%20_fp)%0A%0A%20%20%20%20_fig%2C%20(_a1%2C%20_a2)%20%3D%20plt.subplots(1%2C%202%2C%20figsize%3D(10%2C%204))%0A%20%20%20%20_cm%20%3D%20np.array(%5B%5B_tn%2C%20_fp%5D%2C%20%5B_fn%2C%20_tp%5D%5D)%0A%20%20%20%20_a1.imshow(_cm%2C%20cmap%3D%22Blues%22)%0A%20%20%20%20for%20(_i%2C%20_j)%2C%20_v%20in%20np.ndenumerate(_cm)%3A%0A%20%20%20%20%20%20%20%20_a1.text(_j%2C%20_i%2C%20_v%2C%20ha%3D%22center%22%2C%20va%3D%22center%22%2C%20fontsize%3D16%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20color%3D%22white%22%20if%20_v%20%3E%20_cm.max()%20%2F%202%20else%20%22black%22)%0A%20%20%20%20_a1.set_xticks(%5B0%2C%201%5D%2C%20%5B%22Not%20readm.%22%2C%20%22Readmitted%22%5D)%0A%20%20%20%20_a1.set_yticks(%5B0%2C%201%5D%2C%20%5B%22Not%20readm.%22%2C%20%22Readmitted%22%5D)%0A%20%20%20%20_a1.set_xlabel(%22Predicted%22)%3B%20_a1.set_ylabel(%22Actual%22)%3B%20_a1.set_title(%22Confusion%20matrix%20(test%20set)%22)%0A%0A%20%20%20%20for%20_n%2C%20_pp%20in%20probs.items()%3A%0A%20%20%20%20%20%20%20%20_f%2C%20_t%2C%20_%20%3D%20roc_curve(y_test%2C%20_pp)%0A%20%20%20%20%20%20%20%20_a2.plot(_f%2C%20_t%2C%20lw%3D2.5%20if%20_n%20%3D%3D%20model_pick.value%20else%201%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20alpha%3D1%20if%20_n%20%3D%3D%20model_pick.value%20else%20.4%2C%20label%3Df%22%7B_n%7D%20(%7Baucs%5B_n%5D%3A.3f%7D)%22)%0A%20%20%20%20_a2.plot(%5B0%2C%201%5D%2C%20%5B0%2C%201%5D%2C%20%22k--%22%2C%20lw%3D1)%0A%20%20%20%20_a2.scatter(%5B1%20-%20_spec%5D%2C%20%5B_sens%5D%2C%20s%3D90%2C%20color%3D%22red%22%2C%20zorder%3D5%2C%20label%3D%22Current%20threshold%22)%0A%20%20%20%20_a2.set_xlabel(%22False%20positive%20rate%22)%3B%20_a2.set_ylabel(%22Sensitivity%22)%0A%20%20%20%20_a2.set_title(%22ROC%20curves%20(AUROC)%22)%3B%20_a2.legend(fontsize%3D8%2C%20loc%3D%22lower%20right%22)%0A%20%20%20%20_fig.tight_layout()%0A%0A%20%20%20%20mo.vstack(%5B%0A%20%20%20%20%20%20%20%20mo.hstack(%5Bmo.stat(f%22%7B_acc%3A.1%25%7D%22%2C%20label%3D%22Accuracy%22)%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20mo.stat(f%22%7B_sens%3A.1%25%7D%22%2C%20label%3D%22Sensitivity%22)%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20mo.stat(f%22%7B_spec%3A.1%25%7D%22%2C%20label%3D%22Specificity%22)%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20mo.stat(f%22%7Baucs%5Bmodel_pick.value%5D%3A.3f%7D%22%2C%20label%3D%22AUROC%22)%5D)%2C%0A%20%20%20%20%20%20%20%20_fig%2C%0A%20%20%20%20%5D)%0A%20%20%20%20return%0A%0A%0A%40app.cell%0Adef%20_(aucs%2C%20mo)%3A%0A%20%20%20%20mo.md(f%22%22%22%0A%20%20%20%20%23%23%23%20Model%20comparison%20(test%20set%2C%20threshold%200.5)%0A%20%20%20%20%7C%20Model%20%7C%20Accuracy%20%7C%20Sensitivity%20%7C%20Specificity%20%7C%20AUROC%20%7C%0A%20%20%20%20%7C---%7C---%7C---%7C---%7C---%7C%0A%20%20%20%20%7C%20Logistic%20regression%20%7C%200.583%20%7C%200.157%20%7C%200.867%20%7C%20%7Baucs%5B'Logistic%20regression'%5D%3A.3f%7D%20%7C%0A%20%20%20%20%7C%20Decision%20tree%20%7C%200.604%20%7C%200.300%20%7C%200.807%20%7C%20%7Baucs%5B'Decision%20tree'%5D%3A.3f%7D%20%7C%0A%20%20%20%20%7C%20Random%20forest%20%7C%200.613%20%7C%200.213%20%7C%200.880%20%7C%20%7Baucs%5B'Random%20forest'%5D%3A.3f%7D%20%7C%0A%0A%20%20%20%20**Which%20is%20best%3F**%20The%20**random%20forest**%20has%20the%20top%20AUROC%20and%20accuracy%2C%20so%20it%20is%20our%0A%20%20%20%20pick%2C%20but%20the%20three%20models%20are%20nearly%20tied%20(AUROC%20about%200.59).%20Logistic%20regression%20is%0A%20%20%20%20a%20reasonable%20alternative%20because%20it%20is%20simpler%20to%20explain.%20At%200.5%20every%20model%20has%20very%0A%20%20%20%20low%20sensitivity%3A%20they%20mostly%20guess%20%22not%20readmitted%22%2C%20and%2060%25%20of%20stays%20are%20not%20readmitted%2C%0A%20%20%20%20so%2060%25%20accuracy%20is%20the%20baseline%20to%20beat.%0A%0A%20%20%20%20**Threshold.**%20Missing%20a%20patient%20who%20comes%20back%20is%20worse%20than%20an%20unnecessary%20follow-up%0A%20%20%20%20call%2C%20so%20we%20want%20higher%20sensitivity.%20For%20the%20random%20forest%2C%20**0.40**%20maximises%20Youden's%20J%0A%20%20%20%20(sensitivity%200.66%2C%20specificity%200.48).%20Drag%20the%20slider%20to%20see%20the%20trade-off%3A%20below%20about%0A%20%20%20%200.35%20almost%20every%20patient%20is%20flagged%2C%20and%20above%200.5%20almost%20nobody%20is.%0A%20%20%20%20%22%22%22)%0A%20%20%20%20return%0A%0A%0A%40app.cell%0Adef%20_(mo)%3A%0A%20%20%20%20mo.md(r%22%22%22%0A%20%20%20%20%23%23%20Try%20it%3A%20classify%20a%20new%20patient%0A%20%20%20%20Enter%20a%20patient's%20stay%20details%20and%20see%20each%20model's%20predicted%20chance%20of%20readmission.%0A%20%20%20%20%22%22%22)%0A%20%20%20%20return%0A%0A%0A%40app.cell%0Adef%20_(mo)%3A%0A%20%20%20%20s_days%20%3D%20mo.ui.slider(1%2C%2014%2C%20value%3D7%2C%20label%3D%22Days%20in%20hospital%22%2C%20show_value%3DTrue)%0A%20%20%20%20s_lab%20%3D%20mo.ui.slider(1%2C%20130%2C%20value%3D55%2C%20label%3D%22Lab%20tests%22%2C%20show_value%3DTrue)%0A%20%20%20%20s_proc%20%3D%20mo.ui.slider(0%2C%206%2C%20value%3D2%2C%20label%3D%22Procedures%22%2C%20show_value%3DTrue)%0A%20%20%20%20s_med%20%3D%20mo.ui.slider(1%2C%2080%2C%20value%3D20%2C%20label%3D%22Medications%22%2C%20show_value%3DTrue)%0A%20%20%20%20s_diag%20%3D%20mo.ui.slider(1%2C%2016%2C%20value%3D8%2C%20label%3D%22Diagnoses%22%2C%20show_value%3DTrue)%0A%20%20%20%20s_dm%20%3D%20mo.ui.checkbox(value%3DTrue%2C%20label%3D%22Prescribed%20a%20diabetes%20medication%22)%0A%20%20%20%20mo.vstack(%5Bmo.hstack(%5Bs_days%2C%20s_lab%2C%20s_proc%5D%2C%20justify%3D%22start%22)%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20mo.hstack(%5Bs_med%2C%20s_diag%2C%20s_dm%5D%2C%20justify%3D%22start%22)%5D)%0A%20%20%20%20return%20s_days%2C%20s_diag%2C%20s_dm%2C%20s_lab%2C%20s_med%2C%20s_proc%0A%0A%0A%40app.cell%0Adef%20_(X%2C%20mo%2C%20models%2C%20pd%2C%20s_days%2C%20s_diag%2C%20s_dm%2C%20s_lab%2C%20s_med%2C%20s_proc%2C%20thr)%3A%0A%20%20%20%20_pt%20%3D%20pd.DataFrame(%5B%7B%0A%20%20%20%20%20%20%20%20%22time_in_hospital%22%3A%20s_days.value%2C%20%22num_lab_procedures%22%3A%20s_lab.value%2C%0A%20%20%20%20%20%20%20%20%22num_procedures%22%3A%20s_proc.value%2C%20%22num_medications%22%3A%20s_med.value%2C%0A%20%20%20%20%20%20%20%20%22number_diagnoses%22%3A%20s_diag.value%2C%20%22diabetes_med%22%3A%20int(s_dm.value)%7D%5D)%5BX.columns%5D%0A%20%20%20%20_rows%20%3D%20%22%22%0A%20%20%20%20for%20_n%2C%20_m%20in%20models.items()%3A%0A%20%20%20%20%20%20%20%20_pr%20%3D%20_m.predict_proba(_pt)%5B0%2C%201%5D%0A%20%20%20%20%20%20%20%20_rows%20%2B%3D%20(f%22%7C%20%7B_n%7D%20%7C%20%7B_pr%3A.0%25%7D%20%7C%20%22%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20f%22%7B'**Readmitted**'%20if%20_pr%20%3E%3D%20thr.value%20else%20'Not%20readmitted'%7D%20%7C%5Cn%22)%0A%20%20%20%20mo.md(f%22%22%22%0A%20%20%20%20%7C%20Model%20%7C%20P(readmitted)%20%7C%20Prediction%20at%20threshold%20%7Bthr.value%3A.2f%7D%20%7C%0A%20%20%20%20%7C---%7C---%7C---%7C%0A%20%20%20%20%7B_rows%7D%0A%20%20%20%20%22%22%22)%0A%20%20%20%20return%0A%0A%0A%40app.cell%0Adef%20_(mo)%3A%0A%20%20%20%20mo.md(r%22%22%22%0A%20%20%20%20%23%23%20Results%20and%20conclusion%0A%20%20%20%20**Answer%3A**%20*not%20very%20accurately.*%20With%20these%20six%20variables%2C%20our%20best%20model%20(random%0A%20%20%20%20forest)%20reaches%20an%20**AUROC%20of%20about%200.59**%2C%20where%200.5%20is%20a%20coin%20flip%20and%201.0%20is%20perfect.%0A%20%20%20%20Its%2061%25%20accuracy%20at%20threshold%200.5%20barely%20beats%20always%20predicting%20%22not%20readmitted%22%20(60%25).%0A%20%20%20%20Lowering%20the%20threshold%20to%200.40%20catches%20about%20two-thirds%20of%20readmissions%2C%20but%20only%20by%0A%20%20%20%20wrongly%20flagging%20about%20half%20of%20the%20patients%20who%20do%20not%20return.%0A%0A%20%20%20%20**What%20this%20means.**%20Counts%20recorded%20during%20the%20stay%20(days%2C%20tests%2C%20medications)%20are%20only%0A%20%20%20%20weakly%20related%20to%20coming%20back.%20Better%20predictors%20probably%20include%20prior%20admissions%2C%0A%20%20%20%20discharge%20destination%20and%20lab%20results%20like%20HbA1c%2C%20none%20of%20which%20are%20in%20this%20simplified%0A%20%20%20%20file.%20As%20it%20stands%2C%20the%20model%20could%20be%20a%20rough%20screening%20aid%2C%20but%20it%20should%20not%20drive%0A%20%20%20%20decisions%20about%20individual%20patients.%0A%0A%20%20%20%20**Limitations.**%20A%203%2C000-row%20sample%2C%20one%20random%20split%20(results%20vary%20by%20about%0A%20%20%20%20%2B%2F-%200.02%20AUROC)%2C%20no%20tuning%20of%20hyperparameters%2C%20and%20data%20from%201999-2008.%0A%20%20%20%20%22%22%22)%0A%20%20%20%20return%0A%0A%0Aif%20__name__%20%3D%3D%20%22__main__%22%3A%0A%20%20%20%20app.run()%0A</marimo-code></head>
+  <body>
+    <div id="root"></div>
+    <script data-marimo="true">
+      Object.defineProperty(window, "__MARIMO_MOUNT_CONFIG__", {
+        value: Object.freeze({
+            "filename": "notebook.py",
+            "cwd": "",
+            "lspWorkspace": null,
+            "mode": "read",
+            "version": "0.25.2",
+            "serverToken": "unused",
+            "config": {"ai": {"allow_provider_config": true, "custom_providers": {}, "enabled": true, "models": {"custom_models": [], "displayed_models": []}}, "completion": {"activate_on_typing": true, "auto_close_pairs": true, "copilot": false, "signature_hint_on_typing": false}, "diagnostics": {"sql_linter": true}, "display": {"cell_output": "below", "code_editor_font_size": 14, "code_lens": true, "dataframes": "rich", "default_table_max_columns": 50, "default_table_page_size": 10, "default_width": "medium", "reference_highlighting": true, "theme": "light"}, "formatting": {"line_length": 79}, "keymap": {"overrides": {}, "preset": "default"}, "language_servers": {"pylsp": {"enable_flake8": false, "enable_mypy": true, "enable_pydocstyle": false, "enable_pyflakes": false, "enable_pylint": false, "enable_ruff": true, "enabled": false}}, "mcp": {"mcpServers": {}, "presets": []}, "package_management": {"manager": "pip"}, "runtime": {"auto_instantiate": false, "auto_reload": "off", "default_csv_encoding": "utf-8", "default_sql_output": "auto", "on_cell_change": "autorun", "output_max_bytes": 8000000, "reactive_tests": true, "show_tracebacks": false, "std_stream_max_bytes": 1000000, "watcher_on_save": "lazy"}, "save": {"autosave": "off", "autosave_delay": 1000, "format_on_save": false}, "server": {"browser": "default", "follow_symlink": false}, "snippets": {"custom_paths": [], "include_default_snippets": true}},
+            "configOverrides": {},
+            "appConfig": {"app_title": "Predicting Diabetes Readmission", "sql_output": "auto", "width": "medium"},
+            "layout": null,
+            "view": {"showAppCode": false},
+            "notebook": null,
+            "session": null,
+            "runtimeConfig": null
+        }),
+        writable: false,
+        configurable: false,
+      });
+    </script>
+  </body>
+</html>
