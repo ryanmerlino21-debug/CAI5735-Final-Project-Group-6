@@ -21,7 +21,7 @@
 | File | What it is |
 |---|---|
 | `notebook.py` | Marimo analysis notebook (split, 3 models, confusion matrices, ROC/AUROC, new patient demo, threshold) |
-| `docs/index.html` | The web app (plain HTML, CSS and JavaScript) served by GitHub Pages |
+| `docs/index.html`, `docs/app.css`, `docs/app.js` | The web app (plain HTML, CSS and JavaScript, no build step) served by GitHub Pages |
 | `docs/notebook.html` | The notebook exported with its outputs, so it can be read in a browser |
 | `docs/data.json` | Model results and parameters the app reads |
 | `scripts/export_results.py` | Trains the same models as the notebook and writes `docs/data.json` |

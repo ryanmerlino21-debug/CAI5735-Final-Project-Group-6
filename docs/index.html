@@ -6,309 +6,38 @@
 <title>CAI5735 Final Project - Group 6</title>
 <!-- Group members: Ryan Merlino, April Walter, Nikolas Platon -->
 <!-- Repository: https://github.com/ryanmerlino21-debug/CAI5735-Final-Project-Group-6 -->
+<script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t;else if(matchMedia("(prefers-color-scheme:dark)").matches)document.documentElement.dataset.theme="dark";if(localStorage.getItem("big")==="on")document.documentElement.dataset.big="on"}catch(e){}</script>
+<link rel="stylesheet" href="app.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<style>
-  :root{--bg:#f7f8fa;--card:#fff;--text:#1d2330;--muted:#5d6678;--line:#e1e5ec;--blue:#2f6fb5;--red:#c8453f;--accent:#2f6fb5}
-  @media (prefers-color-scheme:dark){:root{--bg:#12151c;--card:#1b2030;--text:#e8ebf2;--muted:#9aa3b5;--line:#2c3348;--blue:#6aa6e8;--red:#ef7d77;--accent:#6aa6e8}}
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-  header{padding:48px 16px 32px;text-align:center;border-bottom:1px solid var(--line);background:var(--card)}
-  header h1{margin:0 0 8px;font-size:2rem;line-height:1.2}
-  header p{margin:4px 0;color:var(--muted)}
-  nav{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);display:flex;gap:4px;justify-content:center;flex-wrap:wrap;padding:8px}
-  nav a{color:var(--muted);text-decoration:none;padding:6px 12px;border-radius:6px;font-size:.92rem}
-  nav a:hover{background:var(--bg);color:var(--text)}
-  main{max-width:900px;margin:0 auto;padding:0 16px 64px}
-  section{margin-top:40px}
-  h2{font-size:1.5rem;margin:0 0 12px}
-  h3{font-size:1.1rem;margin:24px 0 8px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px;margin:16px 0}
-  blockquote{margin:16px 0;padding:12px 18px;border-left:4px solid var(--accent);background:var(--card);border-radius:0 8px 8px 0;font-size:1.08rem}
-  table{border-collapse:collapse;width:100%;font-size:.93rem}
-  th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left}
-  th{color:var(--muted);font-weight:600}
-  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
-  .controls{display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin-bottom:12px}
-  label{font-size:.92rem;color:var(--muted)}
-  select{font:inherit;padding:6px 8px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text)}
-  input[type=range]{accent-color:var(--accent);vertical-align:middle}
-  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin:12px 0}
-  .stat{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 14px}
-  .stat b{display:block;font-size:1.5rem;font-variant-numeric:tabular-nums}
-  .stat span{font-size:.82rem;color:var(--muted)}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-  @media(max-width:700px){.grid2{grid-template-columns:1fr}header h1{font-size:1.6rem}}
-  .chartbox{position:relative;height:320px}
-  .cm{display:grid;grid-template-columns:auto 1fr 1fr;gap:4px;max-width:360px;margin:8px auto;text-align:center;font-size:.85rem;color:var(--muted)}
-  .cm .cell{padding:18px 6px;border-radius:6px;color:var(--text);font-size:1.4rem;font-weight:600;font-variant-numeric:tabular-nums}
-  .cm .tn,.cm .tp{background:color-mix(in srgb,var(--blue) 35%,transparent)}
-  .cm .fp,.cm .fn{background:color-mix(in srgb,var(--red) 30%,transparent)}
-  .cm .lab{align-self:center;padding:2px}
-  .sliders{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
-  .sliders div{display:flex;flex-direction:column}
-  .sliders output{font-weight:600;color:var(--text)}
-  .pred{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
-  .pred .p{flex:1 1 200px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 16px}
-  .pred .p b{font-size:1.6rem;display:block}
-  .pred .yes{border-color:var(--red)}
-  .bar{height:8px;background:var(--line);border-radius:4px;margin-top:6px;overflow:hidden}
-  .bar i{display:block;height:100%;background:var(--accent)}
-  .note{color:var(--muted);font-size:.9rem}
-  footer{text-align:center;color:var(--muted);font-size:.88rem;padding:24px 16px;border-top:1px solid var(--line)}
-  a{color:var(--accent)}
-</style>
 </head>
 <body>
-<header>
+<a class="skip" href="#main">Skip to content</a>
+<header class="hero"><div class="hero-in">
+  <details class="menu" id="menu">
+    <summary>Display &amp; help</summary>
+    <div class="menupop">
+      <button class="mrow" id="mDark" role="switch"><span><b>Dark mode</b><small>Easier on the eyes at night</small></span><span class="sw"><i></i></span></button>
+      <button class="mrow" id="mBig" role="switch"><span><b>Larger text</b><small>Bigger type everywhere</small></span><span class="sw"><i></i></span></button>
+      <a class="mrow" href="#glossary" style="text-decoration:none;color:inherit"><span><b>Glossary</b><small>Plain meanings of every term</small></span><span>›</span></a>
+    </div>
+  </details>
+  <div class="eyebrow">CAI5735 Final Project · Group 6 · Hospital readmission · n = 3,000</div>
   <h1>Can we predict who comes back to the hospital?</h1>
-  <p>CAI5735 Final Project - Group 6</p>
-  <p>Ryan Merlino, April Walter, Nikolas Platon</p>
-</header>
-<nav>
-  <a href="#question">Research question</a><a href="#dataset">Dataset</a>
-  <a href="#process">Analysis process</a><a href="#try">Try a patient</a><a href="#results">Results</a>
-</nav>
-<main>
+  <p>Ryan Merlino, April Walter, Nikolas Platon. We compare three classification models on a sample of diabetes patient stays to see how well a few numbers from the hospital stay can predict readmission.</p>
+  <div class="pills" id="heroPills"></div>
+</div></header>
 
-<section id="question">
-  <h2>Research question</h2>
-  <blockquote>How accurately can a diabetes patient's length of stay, number of lab tests, procedures, medications and diagnoses, plus whether they were prescribed a diabetes medication, predict whether they will be readmitted to the hospital?</blockquote>
-  <p><b>The problem.</b> When a patient with diabetes leaves the hospital and then has to come back, it is hard on the patient and it is costly for the hospital. Hospitals in the US are even penalized when too many patients are readmitted. If we could flag high risk patients before they go home, staff could focus follow up calls and medication reviews on those patients first.</p>
-  <p><b>Why it is important.</b> Which means that better care could go to the people who need it most. In this project we test how far a few simple numbers recorded during the stay can take us, and whether that is good enough to be useful.</p>
-</section>
-
-<section id="dataset">
-  <h2>Dataset</h2>
-  <p>We used the <i>Diabetes 130-US Hospitals for Years 1999-2008</i> dataset from the UCI Machine Learning Repository (Strack et al., 2014, <i>Impact of HbA1c measurement on hospital readmission rates</i>, BioMed Research International, <a href="https://doi.org/10.24432/C5230J">doi.org/10.24432/C5230J</a>). Our copy is a simplified sample of 3,000 hospital stays from 130 US hospitals that was provided for the course. There are no missing values.</p>
-  <div class="card" style="overflow-x:auto">
-  <table>
-    <tr><th>Column</th><th>Role</th><th>Meaning</th></tr>
-    <tr><td><code>readmitted</code></td><td><b>Response</b></td><td>Did the patient come back? (we use yes or no)</td></tr>
-    <tr><td><code>time_in_hospital</code></td><td>Predictor</td><td>Days in the hospital</td></tr>
-    <tr><td><code>num_lab_procedures</code></td><td>Predictor</td><td>Lab tests during the stay</td></tr>
-    <tr><td><code>num_procedures</code></td><td>Predictor</td><td>Procedures other than lab tests</td></tr>
-    <tr><td><code>num_medications</code></td><td>Predictor</td><td>Different medications given</td></tr>
-    <tr><td><code>number_diagnoses</code></td><td>Predictor</td><td>Diagnoses recorded for the stay</td></tr>
-    <tr><td><code>diabetes_med</code></td><td>Predictor</td><td>Prescribed a diabetes medication (yes or no)</td></tr>
-    <tr><td>age, gender, admission_type</td><td>Not used</td><td>Left out to focus on what happens during the stay</td></tr>
-  </table></div>
-  <p id="levels"></p>
-
-  <h3>Explore the variables</h3>
-  <p>Pick a variable to see how readmitted and not readmitted stays compare. The two groups look very similar, which already hints at what we found.</p>
-  <div class="card">
-    <div class="controls"><label>Variable <select id="varSel"></select></label></div>
-    <div class="chartbox"><canvas id="histChart"></canvas></div>
-    <p class="note" id="histNote"></p>
-  </div>
-</section>
-
-<section id="process">
-  <h2>Analysis process</h2>
-  <p><b>First,</b> we split the data into 75% training (<span id="ntrain"></span> stays) and 25% testing (<span id="ntest"></span> stays). Every result below comes from the test stays, which the models never saw during training.
-  <b>Then</b> we trained three classification models: <b>logistic regression</b> as a simple baseline, a <b>decision tree</b> with a depth of 4, and a <b>random forest</b> of 300 trees.
-  <b>Next,</b> we evaluated each one with a confusion matrix, accuracy, sensitivity, specificity, and the ROC curve with the AUROC.
-  <b>Finally,</b> we compared the models and picked a threshold.</p>
-  <p class="note">Sensitivity is the share of real readmissions the model catches. Specificity is the share of patients who did not come back that the model correctly leaves alone. The threshold is the predicted probability where a patient gets labeled as readmitted. The full code is in the notebook (<code>notebook.py</code>) in the GitHub repository.</p>
-
-  <h3>Explore a model and a threshold</h3>
-  <div class="card">
-    <div class="controls">
-      <label>Model <select id="modelSel"></select></label>
-      <label>Threshold <input type="range" id="thr" min="0.10" max="0.70" step="0.01" value="0.40"> <b id="thrVal">0.40</b></label>
-    </div>
-    <div class="stats">
-      <div class="stat"><b id="sAcc"></b><span>Accuracy</span></div>
-      <div class="stat"><b id="sSens"></b><span>Sensitivity</span></div>
-      <div class="stat"><b id="sSpec"></b><span>Specificity</span></div>
-      <div class="stat"><b id="sAuc"></b><span>AUROC</span></div>
-    </div>
-    <div class="grid2">
-      <div>
-        <h3 style="margin-top:0">Confusion matrix (test set)</h3>
-        <div class="cm">
-          <div></div><div>Predicted<br>not readmitted</div><div>Predicted<br>readmitted</div>
-          <div class="lab">Actual<br>not readm.</div><div class="cell tn" id="cTN"></div><div class="cell fp" id="cFP"></div>
-          <div class="lab">Actual<br>readmitted</div><div class="cell fn" id="cFN"></div><div class="cell tp" id="cTP"></div>
-        </div>
-        <p class="note" style="text-align:center">Blue is a correct prediction, red is a mistake.</p>
-      </div>
-      <div>
-        <h3 style="margin-top:0">ROC curves</h3>
-        <div class="chartbox" style="height:300px"><canvas id="rocChart"></canvas></div>
-      </div>
-    </div>
-  </div>
-
-  <h3>Model comparison</h3>
-  <p class="note">This table updates with the threshold slider above.</p>
-  <div class="card" style="overflow-x:auto"><table id="cmpTable"></table></div>
-  <p><b>Which model is best?</b> I chose the <b>random forest</b> because it has the highest AUROC and accuracy. The three models are very close though, with an AUROC around 0.59. Logistic regression is also a good choice because it is simpler and easier to explain. At a threshold of 0.5 every model has very low sensitivity because they mostly guess not readmitted. About 60% of stays are not readmitted, so 60% accuracy is the number to beat.</p>
-  <p><b>Where I would set the threshold.</b> Missing a patient who comes back is worse than making an extra follow up call, so I want higher sensitivity. For the random forest, a threshold of <b>0.40</b> gave the best balance (sensitivity about 0.66 and specificity about 0.48). Try the slider to see the trade off. Below about 0.35 almost every patient is flagged, and above 0.5 almost nobody is.</p>
-  <div class="card">
-    <h3 style="margin-top:0">Sensitivity and specificity at every threshold</h3>
-    <div class="chartbox" style="height:280px"><canvas id="thrChart"></canvas></div>
-  </div>
-</section>
-
-<section id="try">
-  <h2>Try it: classify a new patient</h2>
-  <p>Enter the details of a patient's stay and see each model's predicted chance of readmission. It uses the threshold from the slider above.</p>
-  <div class="card">
-    <div class="sliders" id="patientSliders"></div>
-    <label style="display:block;margin-top:14px"><input type="checkbox" id="dm" checked> Prescribed a diabetes medication</label>
-    <div class="pred" id="preds"></div>
-  </div>
-</section>
-
-<section id="results">
-  <h2>Results and conclusion</h2>
-  <p><b>Answer.</b> These variables do not predict readmission very accurately. Our best model, the random forest, reached an AUROC of about 0.59. A score of 0.5 is a coin flip and 1.0 is perfect, so this is only slightly better than guessing. Its accuracy of 61% at a threshold of 0.5 barely beats always guessing not readmitted, which is 60%. When I lowered the threshold to 0.40, the model caught about two thirds of readmissions, but it also flagged about half of the patients who did not come back.</p>
-  <p><b>What this means.</b> The numbers recorded during a stay, like days in the hospital, tests, and medications, are only weakly related to coming back. Things like prior admissions, where the patient goes after discharge, and lab results such as HbA1c would probably help more, but they are not in this simplified file. Because of that, the model could only be a rough screening tool, and it should not be used alone to make decisions about a patient.</p>
-  <p><b>Limitations.</b> The sample is only 3,000 stays and we used one random split, so the AUROC could change by about 0.02 with a different split. We also did not tune the models, and the data is from 1999 to 2008.</p>
-</section>
-
-</main>
+<div class="wrap">
+  <aside class="side"><nav id="tabs" aria-label="Sections"></nav>
+    <p class="sidenote">Every chart has toggles above it and a short "How to read this" note below it.</p></aside>
+  <main id="main"></main>
+</div>
 <footer>
-  CAI5735 Final Project - Group 6 · Ryan Merlino, April Walter, Nikolas Platon<br>
+  CAI5735 Final Project - Group 6 · Ryan Merlino, April Walter, Nikolas Platon ·
   <a href="https://github.com/ryanmerlino21-debug/CAI5735-Final-Project-Group-6">GitHub repository</a> ·
-  Data: <a href="https://doi.org/10.24432/C5230J">UCI Diabetes 130-US Hospitals</a>
+  <a href="notebook.html">Analysis notebook</a> ·
+  Data: <a href="https://doi.org/10.24432/C5230J">UCI Diabetes 130-US Hospitals</a> (Strack et al., 2014)
 </footer>
-
-<script>
-// clear anything cached from the earlier version of this page
-if(navigator.serviceWorker)navigator.serviceWorker.getRegistrations().then(r=>r.forEach(x=>x.unregister()));
-const LABELS = {time_in_hospital:"Days in hospital",num_lab_procedures:"Lab tests",num_procedures:"Procedures",
-  num_medications:"Medications",number_diagnoses:"Diagnoses",diabetes_med:"Diabetes medication"};
-const MODELS = ["Logistic regression","Decision tree","Random forest"];
-const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-let D, charts = {};
-
-// ---------- model evaluation (all computed here in the browser) ----------
-function confusion(probs, y, thr){
-  let tp=0,tn=0,fp=0,fn=0;
-  for(let i=0;i<y.length;i++){const p=probs[i]>=thr?1:0;
-    if(p&&y[i])tp++;else if(!p&&!y[i])tn++;else if(p)fp++;else fn++;}
-  return {tp,tn,fp,fn,acc:(tp+tn)/y.length,sens:tp/(tp+fn),spec:tn/(tn+fp)};
-}
-function roc(probs, y){
-  const idx=probs.map((_,i)=>i).sort((a,b)=>probs[b]-probs[a]);
-  const P=y.reduce((a,b)=>a+b,0), N=y.length-P;
-  let tp=0,fp=0,pts=[{x:0,y:0}],auc=0,prev={x:0,y:0};
-  for(let k=0;k<idx.length;k++){
-    if(y[idx[k]])tp++;else fp++;
-    if(k===idx.length-1||probs[idx[k+1]]!==probs[idx[k]]){
-      const pt={x:fp/N,y:tp/P}; auc+=(pt.x-prev.x)*(pt.y+prev.y)/2; pts.push(pt); prev=pt;}
-  }
-  return {pts,auc};
-}
-// model inference for a new patient
-const evalTree=(t,x)=>{let n=0;while(t.l[n]!==-1){n=x[t.f[n]]<=t.t[n]?t.l[n]:t.r[n];}return t.p[n];};
-function predict(name,x){
-  if(name==="Logistic regression"){const m=D.lr;let z=m.intercept;
-    for(let i=0;i<x.length;i++)z+=m.coef[i]*(x[i]-m.mean[i])/m.scale[i];return 1/(1+Math.exp(-z));}
-  if(name==="Decision tree")return evalTree(D.tree,x);
-  return D.forest.reduce((s,t)=>s+evalTree(t,x),0)/D.forest.length;
-}
-
-// ---------- page ----------
-const pct = v => (v*100).toFixed(1)+"%";
-const thr = () => parseFloat(document.getElementById("thr").value);
-
-function colorFor(i){return [css("--blue"),"#e0a030",css("--red")][i];}
-
-function drawHist(){
-  const v=document.getElementById("varSel").value, vals=D.data[v], y=D.readmitted;
-  const lo=Math.min(...vals), hi=Math.max(...vals), width=Math.max(1,Math.ceil((hi-lo+1)/20));
-  const nb=Math.floor((hi-lo)/width)+1, c0=Array(nb).fill(0), c1=Array(nb).fill(0);
-  vals.forEach((x,i)=>{(y[i]?c1:c0)[Math.floor((x-lo)/width)]++;});
-  const n0=y.filter(a=>!a).length, n1=y.length-n0;
-  const labels=c0.map((_,i)=>width===1?String(lo+i):`${lo+i*width}-${lo+i*width+width-1}`);
-  const m=a=>(a.reduce((s,b)=>s+b,0));
-  const mean0=m(vals.filter((_,i)=>!y[i]))/n0, mean1=m(vals.filter((_,i)=>y[i]))/n1;
-  document.getElementById("histNote").textContent=
-    `Average for not readmitted: ${mean0.toFixed(2)}. Average for readmitted: ${mean1.toFixed(2)}.`;
-  const ds=[{label:"Not readmitted",data:c0.map(c=>c/n0*100),backgroundColor:css("--blue")+"bb"},
-            {label:"Readmitted",data:c1.map(c=>c/n1*100),backgroundColor:css("--red")+"bb"}];
-  if(charts.hist){charts.hist.data.labels=labels;charts.hist.data.datasets=ds;
-    charts.hist.options.scales.x.title.text=LABELS[v];charts.hist.update();return;}
-  charts.hist=new Chart("histChart",{type:"bar",data:{labels,datasets:ds},options:{
-    responsive:true,maintainAspectRatio:false,
-    scales:{x:{title:{display:true,text:LABELS[v]},grid:{display:false}},y:{title:{display:true,text:"% of stays in group"},beginAtZero:true}},
-    plugins:{tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y.toFixed(1)}%`}}}}});
-}
-
-let rocData;
-function update(){
-  const t=thr(), model=document.getElementById("modelSel").value;
-  document.getElementById("thrVal").textContent=t.toFixed(2);
-  const c=confusion(D.probs[model],D.y_test,t);
-  document.getElementById("sAcc").textContent=pct(c.acc);
-  document.getElementById("sSens").textContent=pct(c.sens);
-  document.getElementById("sSpec").textContent=pct(c.spec);
-  document.getElementById("sAuc").textContent=rocData[model].auc.toFixed(3);
-  for(const k of ["TN","FP","FN","TP"])document.getElementById("c"+k).textContent=c[k.toLowerCase()];
-
-  // ROC chart with current operating point
-  const ds=MODELS.map((m,i)=>({label:`${m} (${rocData[m].auc.toFixed(3)})`,data:rocData[m].pts,showLine:true,
-    pointRadius:0,borderWidth:m===model?3:1.2,borderColor:colorFor(i)+(m===model?"":"88"),tension:0}));
-  ds.push({label:"Chance",data:[{x:0,y:0},{x:1,y:1}],showLine:true,pointRadius:0,borderDash:[5,5],borderColor:css("--muted"),borderWidth:1});
-  ds.push({label:"Current threshold",data:[{x:1-c.spec,y:c.sens}],pointRadius:7,backgroundColor:css("--text"),borderColor:css("--bg"),borderWidth:2});
-  if(!charts.roc){charts.roc=new Chart("rocChart",{type:"scatter",data:{datasets:ds},options:{
-    responsive:true,maintainAspectRatio:false,animation:false,
-    scales:{x:{min:0,max:1,title:{display:true,text:"False positive rate (1 - specificity)"}},y:{min:0,max:1,title:{display:true,text:"Sensitivity"}}},
-    plugins:{legend:{labels:{boxWidth:12,font:{size:11}}}}}});}
-  else{charts.roc.data.datasets=ds;charts.roc.update();}
-
-  // comparison table at current threshold
-  let h=`<tr><th>Model</th><th class="num">Accuracy</th><th class="num">Sensitivity</th><th class="num">Specificity</th><th class="num">AUROC</th></tr>`;
-  MODELS.forEach(m=>{const k=confusion(D.probs[m],D.y_test,t);
-    h+=`<tr><td>${m}</td><td class="num">${k.acc.toFixed(3)}</td><td class="num">${k.sens.toFixed(3)}</td><td class="num">${k.spec.toFixed(3)}</td><td class="num">${rocData[m].auc.toFixed(3)}</td></tr>`;});
-  document.getElementById("cmpTable").innerHTML=h;
-
-  // threshold sweep chart
-  const ts=[],se=[],sp=[];
-  for(let x=0.10;x<=0.701;x+=0.01){const k=confusion(D.probs[model],D.y_test,x);ts.push(x.toFixed(2));se.push(k.sens);sp.push(k.spec);}
-  const sd=[{label:"Sensitivity",data:se,borderColor:css("--red"),pointRadius:0,tension:.2},
-            {label:"Specificity",data:sp,borderColor:css("--blue"),pointRadius:0,tension:.2}];
-  if(!charts.thr){charts.thr=new Chart("thrChart",{type:"line",data:{labels:ts,datasets:sd},options:{
-    responsive:true,maintainAspectRatio:false,animation:false,
-    scales:{x:{title:{display:true,text:"Threshold"},ticks:{maxTicksLimit:13}},y:{min:0,max:1}},
-    plugins:{title:{display:true,text:model}}}});}
-  else{charts.thr.data.datasets=sd;charts.thr.options.plugins.title.text=model;charts.thr.update();}
-  updatePatient();
-}
-
-function updatePatient(){
-  const x=D.features.map((f,i)=>f==="diabetes_med"?(document.getElementById("dm").checked?1:0):+document.getElementById("s_"+f).value);
-  D.features.forEach(f=>{if(f!=="diabetes_med")document.getElementById("o_"+f).textContent=document.getElementById("s_"+f).value;});
-  const t=thr();
-  document.getElementById("preds").innerHTML=MODELS.map(m=>{const p=predict(m,x),yes=p>=t;
-    return `<div class="p ${yes?"yes":""}"><span class="note">${m}</span><b>${(p*100).toFixed(0)}%</b>
-      <div class="bar"><i style="width:${p*100}%"></i></div>
-      <span class="note">${yes?"Predicted: readmitted":"Predicted: not readmitted"} (threshold ${t.toFixed(2)})</span></div>`;}).join("");
-}
-
-fetch("data.json").then(r=>r.json()).then(d=>{
-  D=d;
-  rocData=Object.fromEntries(MODELS.map(m=>[m,roc(D.probs[m],D.y_test)]));
-  const L=D.readmitted_levels, nR=L["After 30 days"]+L["Within 30 days"];
-  document.getElementById("levels").textContent=
-    `The original outcome has three groups: not readmitted (${L["Not readmitted"]}), after 30 days (${L["After 30 days"]}), and within 30 days (${L["Within 30 days"]}). Our question is about whether a patient comes back at all, so we combined the last two groups into one group called readmitted (${nR} stays, about ${Math.round(nR/30)}%).`;
-  document.getElementById("ntrain").textContent=D.n_train.toLocaleString();
-  document.getElementById("ntest").textContent=D.n_test.toLocaleString();
-  const vs=document.getElementById("varSel");
-  D.features.filter(f=>f!=="diabetes_med").forEach(f=>vs.add(new Option(LABELS[f]+" ("+f+")",f)));
-  vs.value="num_medications"; vs.onchange=drawHist;
-  const ms=document.getElementById("modelSel"); MODELS.forEach(m=>ms.add(new Option(m,m))); ms.value="Random forest";
-  ms.onchange=update; document.getElementById("thr").oninput=update;
-  const cfg={time_in_hospital:[1,14,7],num_lab_procedures:[1,130,55],num_procedures:[0,6,2],num_medications:[1,80,20],number_diagnoses:[1,16,8]};
-  document.getElementById("patientSliders").innerHTML=Object.entries(cfg).map(([f,[a,b,v]])=>
-    `<div><label>${LABELS[f]}: <output id="o_${f}">${v}</output></label><input type="range" id="s_${f}" min="${a}" max="${b}" value="${v}"></div>`).join("");
-  document.querySelectorAll("#patientSliders input").forEach(e=>e.oninput=updatePatient);
-  document.getElementById("dm").onchange=updatePatient;
-  drawHist(); update();
-});
-</script>
+<script src="app.js"></script>
 </body>
 </html>

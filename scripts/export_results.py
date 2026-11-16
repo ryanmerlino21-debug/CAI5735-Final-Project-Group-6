@@ -10,6 +10,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import roc_auc_score
+from sklearn.tree import export_text
 
 df = pd.read_csv("data/diabetes_130.csv")
 cols = ["time_in_hospital", "num_lab_procedures", "num_procedures", "num_medications", "number_diagnoses"]
@@ -46,6 +47,10 @@ out = {
     "data": {c: X[c].tolist() for c in X.columns},
     "readmitted": y.tolist(),
     "readmitted_levels": df["readmitted"].value_counts().to_dict(),
+    "cats": {c: df[c].tolist() for c in ["age", "gender", "admission_type"]},
+    "importance": {"Decision tree": [round(float(v), 5) for v in tree.feature_importances_],
+                   "Random forest": [round(float(v), 5) for v in rf.feature_importances_]},
+    "tree_text": export_text(tree, feature_names=list(X.columns), decimals=1),
     "n_train": len(X_train), "n_test": len(X_test),
 }
 with open("docs/data.json", "w") as f:
