@@ -169,3 +169,7 @@ section.block>h3:before{content:"";width:8px;height:22px;border-radius:4px;backg
 .step:hover,.kpi:hover{transform:translateY(-2px);transition:transform .15s}
 .step .ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,#e6fbf7,#efe8ff)}
 [data-theme=dark] .step .ic{background:var(--soft)}
+
+.says{margin:8px 0 0;padding:10px 14px;background:linear-gradient(135deg,#fff7dc,#ffeef1);border-left:4px solid var(--sun);border-radius:10px;font-size:.9rem;color:var(--ink)}
+[data-theme=dark] .says{background:var(--soft)}
+.how{font-size:.86rem}

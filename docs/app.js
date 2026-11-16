@@ -62,7 +62,7 @@ function refresh() { (REG[S.tab] || []).forEach(e => e.redraw && e.redraw()); }
 
 /* a chart (or html) card with toggles above it and a "how to read this" note below */
 function card({ title, toggles = [], height = 300, kind = "canvas", caption = "", draw, wide }) {
-  const el = h(`<div class="card"><div class="ch"><h4>${title}</h4><div class="tg"></div></div><div class="body"></div><p class="how"></p></div>`);
+  const el = h(`<div class="card"><div class="ch"><h4>${title}</h4><div class="tg"></div></div><div class="body"></div><p class="how"></p><p class="says"></p></div>`);
   const st = {}, tg = $(".tg", el), body = $(".body", el);
   toggles.forEach(t => {
     st[t.key] = t.value;
@@ -88,6 +88,8 @@ function card({ title, toggles = [], height = 300, kind = "canvas", caption = ""
     draw(st, kind === "html" ? body : $("canvas", el), el);
     $(".how", el).innerHTML = caption ? "<b>How to read this.</b> " + (typeof caption === "function" ? caption(st, el) : caption) : "";
     if (!caption) $(".how", el).remove();
+    const sf = SAYS[title], sp = $(".says", el);
+    if (sf) { let t = ""; try { t = sf(st, el); } catch (e) { t = ""; } sp.innerHTML = t ? "<b>What it says.</b> " + t : ""; if (!t) sp.style.display = "none"; else sp.style.display = ""; } else sp.remove();
   };
   return reg(el);
 }
@@ -151,6 +153,131 @@ function makeBins(v, mode) {
   return { labels: Array.from({ length: nb }, (_, i) => (w === 1 ? String(lo + i) : `${lo + i * w}-${lo + i * w + w - 1}`)), idx: vals.map(x => Math.floor((x - lo) / w)) };
 }
 const VAR_OPTS = FEATS.map(f => [f, LBL[f]]);
+
+/* ---------------- "What it says": a plain language reading of each chart, with live numbers ---------------- */
+let PATIENT = null;
+const dWord = d => { d = Math.abs(d); return d < 0.1 ? "almost no difference" : d < 0.2 ? "a very small difference" : d < 0.5 ? "a small difference" : "a clear difference"; };
+const yv = () => D.readmitted;
+const cohen = f => { const v = D.data[f], y = yv(), a = v.filter((_, i) => y[i]), b = v.filter((_, i) => !y[i]); return (mean(a) - mean(b)) / Math.sqrt((sd(a) ** 2 + sd(b) ** 2) / 2); };
+const binRates = (v, mode) => { const { labels, idx } = makeBins(v, mode), n = Array(labels.length).fill(0), r = Array(labels.length).fill(0); idx.forEach((b, i) => { n[b]++; r[b] += yv()[i]; }); return { labels, n, rate: r.map((x, i) => n[i] ? x / n[i] * 100 : null) }; };
+const SAYS = {
+  "Model comparison": st => {
+    const t = st.at === "half" ? 0.5 : S.thr, get = (m, k) => k === "auc" ? ROC[m].auc : confusion(D.probs[m], D.y_test, t)[k], k = st.ch === "bar" || st.ch === "dots" ? st.metric : "auc";
+    const vals = MODELS.map(m => get(m, k)), hi = Math.max(...vals), lo = Math.min(...vals), best = MODELS[vals.indexOf(hi)], nm = { auc: "AUROC", acc: "accuracy", sens: "sensitivity", spec: "specificity", prec: "precision", f1: "F1 score" }[k];
+    let msg = `On ${nm}${k === "auc" ? "" : ` (threshold ${t.toFixed(2)})`} the ${best.toLowerCase()} scores highest at ${f3(hi)}, and the lowest model scores ${f3(lo)}, a gap of only ${f3(hi - lo)}. `;
+    if (k === "auc") msg += "All three are about 0.59, only a little above the 0.50 of a coin flip, so none of them is a strong predictor.";
+    else if (k === "sens") msg += hi < 0.5 ? "Every model catches fewer than half of the patients who really come back." : "At this threshold the models catch a good share of readmissions, but at the cost of more false alarms.";
+    else if (k === "spec") msg += hi > 0.75 ? "High specificity here mostly comes from the models predicting not readmitted for almost everyone." : "Lower specificity means more patients who did not come back get flagged.";
+    else msg += "The models are close enough that the choice between them is a judgment call.";
+    return msg;
+  },
+  "Outcome groups": st => { const L = D.readmitted_levels, n = yv().length, r = L["After 30 days"] + L["Within 30 days"]; return `${r.toLocaleString()} of ${n.toLocaleString()} stays (${pct(r / n, 0)}) were followed by a return to the hospital, and ${L["Not readmitted"].toLocaleString()} (${pct(L["Not readmitted"] / n, 0)}) were not. ${st.lv === "three" ? `Only ${L["Within 30 days"]} stays (${pct(L["Within 30 days"] / n, 0)}) were readmitted within 30 days, which is why we combined the two readmitted groups.` : "Because the groups are not wildly uneven, accuracy is a fair measure, but we have to beat 60% to do better than always guessing not readmitted."}`; },
+  "Data preview": st => `The file has ${yv().length.toLocaleString()} rows like these and ${pct(mean(yv()), 0)} of them are readmitted. ${st.f === "all" ? "Try filtering to Readmitted and then Not readmitted: the rows look very alike, which is an early sign that the variables will not separate the two groups easily." : "Compare these rows with the other filter. It is hard to see any pattern by eye, which previews what the models find."}`,
+  "Split sizes and readmission rate": st => { const pt = sum(D.y_test), ptr = sum(yv()) - pt; return `The training set has ${D.n_train.toLocaleString()} stays (${pct(ptr / D.n_train, 1)} readmitted) and the test set has ${D.n_test.toLocaleString()} stays (${pct(pt / D.n_test, 1)} readmitted). The rates are almost identical, so the test set is a fair stand-in for new patients.`; },
+  "Distribution": st => {
+    const v = D.data[st.v], y = yv(), a = v.filter((_, i) => !y[i]), b = v.filter((_, i) => y[i]), d = cohen(st.v);
+    if (st.v === "diabetes_med") return `${pct(mean(a), 0)} of patients who were not readmitted and ${pct(mean(b), 0)} of those who were readmitted were prescribed a diabetes medication, ${dWord(d)}.`;
+    return `The typical (median) ${LBL[st.v].toLowerCase()} is ${quant(a, .5)} for not readmitted and ${quant(b, .5)} for readmitted, and the averages are ${mean(a).toFixed(1)} and ${mean(b).toFixed(1)}. That is ${dWord(d)} (effect size ${d.toFixed(2)}). The two groups overlap almost completely, so this variable alone cannot tell them apart.`;
+  },
+  "Readmission rate by value": st => {
+    const { labels, n, rate } = binRates(st.v, st.d), ok = rate.map((r, i) => n[i] >= 30 ? i : -1).filter(i => i >= 0);
+    if (!ok.length) return "";
+    const hiI = ok.reduce((a, b) => rate[b] > rate[a] ? b : a), loI = ok.reduce((a, b) => rate[b] < rate[a] ? b : a), r = pearson(D.data[st.v], yv());
+    return `Among groups with at least 30 stays, the readmission rate is highest at ${labels[hiI]} (${rate[hiI].toFixed(0)}%) and lowest at ${labels[loI]} (${rate[loI].toFixed(0)}%), compared with ${pct(mean(yv()), 0)} overall. The overall trend is ${Math.abs(r) < 0.05 ? "essentially flat" : r > 0 ? "a slight rise" : "a slight fall"} (correlation ${r.toFixed(2)}), so ${LBL[st.v].toLowerCase()} gives only a weak hint about readmission.`;
+  },
+  "Readmission rate from lowest to highest values": st => {
+    const k = +st.k, rows = FEATS.slice(0, 5).map(f => { const idx = quantBins(f, k), r = Array(k).fill(0), n = Array(k).fill(0); idx.forEach((b, i) => { n[b]++; r[b] += yv()[i]; }); const last = n.map((v, i) => v ? i : -1).filter(i => i >= 0), a = r[last[0]] / n[last[0]] * 100, z = r[last[last.length - 1]] / n[last[last.length - 1]] * 100; return { f, a, z, d: z - a }; });
+    const big = rows.reduce((a, b) => Math.abs(b.d) > Math.abs(a.d) ? b : a);
+    return `The biggest change from the lowest group to the highest group is for ${LBL[big.f].toLowerCase()}: the rate goes from ${big.a.toFixed(0)}% to ${big.z.toFixed(0)}% (${big.d >= 0 ? "+" : ""}${big.d.toFixed(0)} points). Even that is modest, and the other variables move less, so no variable gives a steep slope.`;
+  },
+  "Readmission rate by two variables": st => {
+    const k = +st.k, X = quantInfo(st.x, k), Y = quantInfo(st.y, k), cells = {};
+    yv().forEach((v, i) => { const key = Y.idx[i] + "," + X.idx[i]; (cells[key] = cells[key] || { n: 0, r: 0, j: Y.idx[i], i: X.idx[i] }); cells[key].n++; cells[key].r += v; });
+    const list = Object.values(cells).filter(c => c.n >= 20).map(c => ({ ...c, q: c.r / c.n * 100 })); if (!list.length) return "";
+    const hi = list.reduce((a, b) => b.q > a.q ? b : a), lo = list.reduce((a, b) => b.q < a.q ? b : a);
+    return `Among cells with at least 20 stays, the highest rate is ${hi.q.toFixed(0)}% (${LBL[st.x].toLowerCase()} ${X.labels[hi.i]}, ${LBL[st.y].toLowerCase()} ${Y.labels[hi.j]}, n = ${hi.n}) and the lowest is ${lo.q.toFixed(0)}% (${LBL[st.x].toLowerCase()} ${X.labels[lo.i]}, ${LBL[st.y].toLowerCase()} ${Y.labels[lo.j]}, n = ${lo.n}). Combining two variables spreads the rates out a little more than one variable does, but small cells are noisy, so we should not read too much into any single cell.`;
+  },
+  "Context variables": st => {
+    const vals = D.cats[st.v], groups = [...new Set(vals)], rows = groups.map(g => ({ g, n: vals.filter(v => v === g).length, r: mean(yv().filter((_, i) => vals[i] === g)) * 100 })), hi = rows.reduce((a, b) => b.r > a.r ? b : a), lo = rows.reduce((a, b) => b.r < a.r ? b : a), big = rows.reduce((a, b) => b.n > a.n ? b : a);
+    return `The largest group is ${big.g} (${pct(big.n / vals.length, 0)} of stays). The readmission rate is highest for ${hi.g} (${hi.r.toFixed(0)}%) and lowest for ${lo.g} (${lo.r.toFixed(0)}%), a gap of ${(hi.r - lo.r).toFixed(1)} points. We did not use this variable in the models, but it suggests the groups come back at similar rates.`;
+  },
+  "Correlation heatmap": () => {
+    const rows = FEATS.map(f => ({ f, r: pearson(D.data[f], yv()) })), top = rows.reduce((a, b) => Math.abs(b.r) > Math.abs(a.r) ? b : a);
+    let pair = { r: 0 }; for (let i = 0; i < 5; i++) for (let j = i + 1; j < 6; j++) { const r = pearson(D.data[FEATS[i]], D.data[FEATS[j]]); if (Math.abs(r) > Math.abs(pair.r)) pair = { r, a: FEATS[i], b: FEATS[j] }; }
+    return `The strongest link to readmission is ${LBL[top.f].toLowerCase()} at r = ${top.r.toFixed(2)}, which is very weak (0 is no link and 1 is perfect). The strongest link between two predictors is ${LBL[pair.a].toLowerCase()} and ${LBL[pair.b].toLowerCase()} at r = ${pair.r.toFixed(2)}. So the variables carry little information about readmission on their own.`;
+  },
+  "Scatter plot": st => {
+    if (st.x === st.y) return `X and Y are the same variable, so the dots fall on a straight line. Pick two different variables to compare them.`;
+    const r = pearson(D.data[st.x], D.data[st.y]);
+    return `${LBL[st.x]} and ${LBL[st.y].toLowerCase()} have a correlation of ${r.toFixed(2)}, so ${Math.abs(r) > 0.4 ? "they clearly rise together" : Math.abs(r) > 0.15 ? "they rise together a little" : "they are mostly unrelated"}. ${st.c === "on" ? "The coral (readmitted) and teal (not readmitted) dots are mixed together everywhere, so no region of this plot is mostly one color." : "Turn on the color option to check whether readmitted patients cluster anywhere."}`;
+  },
+  "Readmitted vs not readmitted": st => {
+    const rows = FEATS.map(f => ({ f, d: cohen(f) })), big = rows.reduce((a, b) => Math.abs(b.d) > Math.abs(a.d) ? b : a);
+    return `The largest difference is for ${LBL[big.f].toLowerCase()}, with an effect size of ${big.d.toFixed(2)} (${dWord(big.d)}). ${rows.every(r => Math.abs(r.d) < 0.3) ? "Every variable is below 0.3, which is small, so readmitted and not readmitted patients look alike on all six." : ""}`;
+  },
+  "Confusion matrix": () => {
+    const c = confusion(D.probs[S.model], D.y_test, S.thr);
+    return `At a threshold of ${S.thr.toFixed(2)}, the ${S.model.toLowerCase()} correctly flagged ${c.tp} of the ${c.tp + c.fn} patients who came back (sensitivity ${pct(c.sens, 0)}) and correctly cleared ${c.tn} of the ${c.tn + c.fp} who did not (specificity ${pct(c.spec, 0)}). It missed ${c.fn} readmissions and raised ${c.fp} false alarms. Overall ${pct(c.acc, 0)} of its predictions were right.`;
+  },
+  "Performance curve": st => {
+    const m = S.model, i = D.probs[m].map((_, k) => k).sort((a, b) => D.probs[m][b] - D.probs[m][a]), n = i.length, P = sum(D.y_test), base = P / n;
+    const top = f => i.slice(0, Math.round(n * f)).reduce((s, k) => s + D.y_test[k], 0);
+    if (st.c === "roc") return `The AUROC values are ${MODELS.map(x => `${x} ${f3(ROC[x].auc)}`).join(", ")}. A coin flip scores 0.50 and a perfect model scores 1.00, so all three models are barely above chance. The curves lie close to the diagonal, which means that whenever the model catches more readmissions it also raises about as many extra false alarms.`;
+    if (st.c === "pr") return `Flagging everyone would give a precision of ${pct(base, 0)} because that is the share of readmitted patients. Our models stay only a little above that line (average precision ${MODELS.map(x => f3(PR[x].ap)).join(", ")}), so the patients they flag are only slightly more likely to be readmitted than a random patient.`;
+    if (st.c === "gain") return `If staff called the top 20% of patients by predicted risk from the ${m.toLowerCase()}, they would reach ${pct(top(.2) / P, 0)} of all readmissions (random calling would reach 20%). Calling the top 40% would reach ${pct(top(.4) / P, 0)} (random would reach 40%). The model helps a little, but not by much.`;
+    if (st.c === "lift") return `For the ${m.toLowerCase()}, the top 20% of patients by predicted risk are readmitted ${((top(.2) / (n * .2)) / base).toFixed(2)} times as often as the average patient (a lift of 1.00 would mean no help). The lift fades toward 1 as we call more patients.`;
+    const pr = D.probs[m]; return `The ${m} predicts probabilities only between ${pct(Math.min(...pr), 0)} and ${pct(Math.max(...pr), 0)}, while real patients are either readmitted or not. A model that was confident and right would spread from near 0 to near 1. The narrow range shows the model has little to go on.`;
+  },
+  "Predicted probabilities for the selected model": () => {
+    const pr = D.probs[S.model], y = D.y_test, a = mean(pr.filter((_, i) => !y[i])), b = mean(pr.filter((_, i) => y[i]));
+    return `The ${S.model} gives patients who were not readmitted an average predicted risk of ${pct(a, 1)} and patients who were readmitted ${pct(b, 1)}, a difference of only ${((b - a) * 100).toFixed(1)} points. The two shapes overlap almost completely, so no threshold can cleanly split them.`;
+  },
+  "Comparison table": () => {
+    const row = k => MODELS.reduce((a, b) => (k === "auc" ? ROC[b].auc > ROC[a].auc : confusion(D.probs[b], D.y_test, S.thr)[k] > confusion(D.probs[a], D.y_test, S.thr)[k]) ? b : a);
+    return `At a threshold of ${S.thr.toFixed(2)}: the best accuracy is ${row("acc")}, the best sensitivity is ${row("sens")}, the best specificity is ${row("spec")} and the best AUROC is ${row("auc")}. No model wins everything, which shows the models trade one strength for another instead of one being clearly better.`;
+  },
+  "Variable importance": st => {
+    const imp = m => { const a = m === MODELS[0] ? D.lr.coef.map(Math.abs) : D.importance[m], t = sum(a); return a.map(v => v / t * 100); };
+    const tops = MODELS.map(m => { const a = imp(m), j = a.indexOf(Math.max(...a)); return { m, f: LBL[FEATS[j]], v: a[j] }; });
+    return st.t === "all" ? `All three models rely most on ${tops.every(t => t.f === tops[0].f) ? tops[0].f.toLowerCase() : "different variables"} (${tops.map(t => `${t.m}: ${t.f.toLowerCase()} ${t.v.toFixed(0)}%`).join("; ")}). The rest of the weight is spread across the other variables, so no single variable drives the predictions.` : `The ${S.model} leans most on ${tops[MODELS.indexOf(S.model)].f.toLowerCase()} (${tops[MODELS.indexOf(S.model)].v.toFixed(0)}% of its importance). Importance only shows what the model used, not that the variable causes readmission.`;
+  },
+  "Inside the models": st => {
+    const T = D.tree, f = T.f[0];
+    if (st.v === "lr") { const o = FEATS.map((x, i) => ({ x, or: Math.exp(D.lr.coef[i] / D.lr.scale[i]) })), big = o.slice(0, 5).reduce((a, b) => Math.abs(Math.log(b.or)) > Math.abs(Math.log(a.or)) ? b : a); return `The largest per unit effect among the counts is ${LBL[big.x].toLowerCase()}, with an odds ratio of ${big.or.toFixed(2)}: each extra unit changes the odds of readmission by about ${Math.abs((big.or - 1) * 100).toFixed(0)}%. The prescription variable has an odds ratio of ${o[5].or.toFixed(2)}.`; }
+    return `The tree's first question is "${LBL[FEATS[f]].toLowerCase()} ≤ ${Math.floor(T.t[0] + .5)}?", which splits ${T.n[0].toLocaleString()} training stays into ${T.n[T.l[0]]} and ${T.n[T.r[0]]}. Its leaves range from ${pct(Math.min(...T.p.filter((_, i) => T.l[i] === -1)), 0)} to ${pct(Math.max(...T.p.filter((_, i) => T.l[i] === -1)), 0)} readmitted, so even the tree's best splits only move the odds a little.`;
+  },
+  "Bootstrap check of the AUROC": () => BOOT ? `The random forest beat logistic regression in ${pct(BOOT.rfBeatsLr, 0)} of 300 resamples. The middle 95% ranges are ${MODELS.map((m, i) => `${m} ${f3(BOOT.ci[i][0])} to ${f3(BOOT.ci[i][1])}`).join("; ")}. They overlap heavily, so we cannot say one model is truly better than another from this test set.` : "Press the button to see how much the AUROC would change by chance.",
+  "Metrics at every threshold": st => {
+    const m = S.model, c = t => confusion(D.probs[m], D.y_test, t), a = c(0.3), b = c(0.5), j = bestJ(m), cj = c(j);
+    return `For the ${m.toLowerCase()}, moving the threshold from 0.30 to 0.50 drops sensitivity from ${pct(a.sens, 0)} to ${pct(b.sens, 0)} and raises specificity from ${pct(a.spec, 0)} to ${pct(b.spec, 0)}. Flagged patients go from ${pct(a.flag, 0)} to ${pct(b.flag, 0)} of everyone. The best balance (Youden's J = ${cj.j.toFixed(3)}) is at a threshold of ${j.toFixed(2)}, with sensitivity ${pct(cj.sens, 0)} and specificity ${pct(cj.spec, 0)}.`;
+  },
+  "Expected cost per 100 patients": st => {
+    const m = S.model, P = sum(D.y_test), n = D.y_test.length, cost = t => { const c = confusion(D.probs[m], D.y_test, t); return (c.fn * st.r + c.fp) / c.n * 100; };
+    let bt = .1, bc = 1e9; for (let t = .1; t <= .7001; t += .01) if (cost(t) < bc) { bc = cost(t); bt = t; }
+    const none = P * st.r / n * 100, every = (n - P) / n * 100;
+    return `When a missed readmission costs ${st.r} false alarms, the cheapest threshold for the ${m.toLowerCase()} is ${bt.toFixed(2)}, at a cost of ${bc.toFixed(0)} per 100 patients. Flagging nobody would cost ${none.toFixed(0)} and flagging everybody would cost ${every.toFixed(0)}. ${bc < Math.min(none, every) - 1 ? "So the model does save some cost compared with the two simple options." : "So the model saves little or nothing compared with a simple rule like flagging everybody."}`;
+  },
+  "Selected model at common thresholds": () => {
+    const a = confusion(D.probs[S.model], D.y_test, .4), b = confusion(D.probs[S.model], D.y_test, .5);
+    return `At 0.40 the ${S.model.toLowerCase()} catches ${pct(a.sens, 0)} of readmissions and flags ${pct(a.flag, 0)} of patients. At 0.50 it catches ${pct(b.sens, 0)} and flags ${pct(b.flag, 0)}. That is why we chose 0.40: it finds far more of the patients who come back, at the cost of more false alarms.`;
+  },
+  "Why did the logistic regression say that?": st => {
+    const x = PATIENT(), z = x.map((v, i) => (v - D.lr.mean[i]) / D.lr.scale[i]), c = z.map((v, i) => v * D.lr.coef[i]), j = c.map(Math.abs).indexOf(Math.max(...c.map(Math.abs))), p = predict(MODELS[0], x);
+    return `For this patient the logistic regression predicts a ${pct(p, 0)} chance of readmission. The biggest push comes from ${LBL[FEATS[j]].toLowerCase()} (${c[j] >= 0 ? "toward" : "away from"} readmission by ${Math.abs(c[j]).toFixed(2)} on the log-odds scale). All of the pushes are small, which is why the prediction stays near the average of 40%.`;
+  },
+  "Where this patient sits in the data": () => {
+    const x = PATIENT(), hi = FEATS.slice(0, 5).filter((f, i) => D.data[f].filter(a => a <= x[i]).length / D.data[f].length > .75).map(f => LBL[f].toLowerCase()), lo = FEATS.slice(0, 5).filter((f, i) => D.data[f].filter(a => a <= x[i]).length / D.data[f].length < .25).map(f => LBL[f].toLowerCase());
+    return `${hi.length ? `This patient is in the top quarter for ${hi.join(", ")}. ` : ""}${lo.length ? `They are in the bottom quarter for ${lo.join(", ")}. ` : ""}${!hi.length && !lo.length ? "This patient is close to the middle of the data on every variable, so they look like a typical stay. " : ""}Patients at the extremes get the models' most extreme predictions.`;
+  },
+  "What if? Change one variable and watch the prediction": st => {
+    const j = FEATS.indexOf(st.v), [lo, hi] = CFG[st.v], b = PATIENT(), at = (m, v) => { const x = b.slice(); x[j] = v; return predict(m, x) * 100; };
+    return `Moving ${LBL[st.v].toLowerCase()} from ${lo} to ${hi} changes the predicted chance of readmission from ${at(MODELS[0], lo).toFixed(0)}% to ${at(MODELS[0], hi).toFixed(0)}% for logistic regression and from ${at(MODELS[2], lo).toFixed(0)}% to ${at(MODELS[2], hi).toFixed(0)}% for the random forest. ${Math.abs(at(MODELS[2], hi) - at(MODELS[2], lo)) < 25 ? "Even a huge change in this one variable moves the prediction only modestly." : "This variable has a noticeable effect on the prediction."}`;
+  },
+  "Default threshold vs our threshold": st => {
+    const a = confusion(D.probs[S.model], D.y_test, .5), b = confusion(D.probs[S.model], D.y_test, .4);
+    return `For the ${S.model.toLowerCase()}, lowering the threshold from 0.50 to 0.40 raises sensitivity from ${pct(a.sens, 0)} to ${pct(b.sens, 0)} but lowers specificity from ${pct(a.spec, 0)} to ${pct(b.spec, 0)} and accuracy from ${pct(a.acc, 0)} to ${pct(b.acc, 0)}. We accept the lower accuracy because catching readmissions matters more than avoiding extra follow up calls.`;
+  }
+};
 
 /* ================= PAGES ================= */
 const PAGES = {};
@@ -456,7 +583,7 @@ PAGES.models = () => {
       <div class="card"><span class="tag">Baseline</span><h4>Logistic regression</h4><p>Combines the six variables into one score. Simple, fast and easy to explain, because each variable gets one weight. We standardized the variables first so the weights can be compared.</p></div>
       <div class="card"><span class="tag">Rules</span><h4>Decision tree</h4><p>Asks a series of yes or no questions, like "more than 6 diagnoses?". We limited it to a depth of 4 and at least 30 stays per leaf so it does not memorize the training data.</p></div>
       <div class="card"><span class="tag">Ensemble</span><h4>Random forest</h4><p>Averages 300 different trees, each trained on a random piece of the data. It can pick up more complicated patterns and is usually steadier than one tree.</p></div></div>`)));
-  p.append(dyn(() => { const best = MODELS.reduce((a, b) => ROC[a].auc > ROC[b].auc ? a : b); return `<div class="callout warn"><h4>Our decision: the ${best}</h4>It has the highest AUROC (${f3(ROC[best].auc)}) and accuracy of the three models, so we picked it. The models are very close though, so logistic regression is a fair alternative because it is simpler. We set the threshold at 0.40 (see the next tab).</div>`; }));
+  p.append(dyn(() => { const best = MODELS.reduce((a, b) => ROC[a].auc > ROC[b].auc ? a : b); return `<div class="callout warn"><h4>Our decision: the ${best.toLowerCase()}</h4>It has the highest AUROC (${f3(ROC[best].auc)}) and accuracy of the three models, so we picked it. The models are very close though, so logistic regression is a fair alternative because it is simpler. We set the threshold at 0.40 (see the next tab).</div>`; }));
   p.append(settingsBar());
   p.append(dyn(() => { const c = confusion(D.probs[S.model], D.y_test, S.thr); return kpis([["Accuracy", pct(c.acc), `${c.tp + c.tn} of ${c.n} correct`], ["Sensitivity", pct(c.sens), "readmissions caught"], ["Specificity", pct(c.spec), "non-readmissions cleared"], ["Precision", pct(c.prec), "flagged who came back"], ["AUROC", f3(ROC[S.model].auc), "all thresholds"]]).outerHTML; }));
   p.append(section("Confusion matrix and curves",
@@ -643,6 +770,7 @@ PAGES.try = () => {
     <div class="sliders">${Object.entries(CFG).map(([f, [a, b]]) => `<label>${LBL[f]}: <output id="o_${f}"></output><input type="range" id="s_${f}" min="${a}" max="${b}"></label>`).join("")}</div>
     <label style="display:block;margin-top:14px"><input type="checkbox" id="s_dm"> Prescribed a diabetes medication</label></div>`);
   const setP = v => { FEATS.forEach((f, i) => { if (f === "diabetes_med") $("#s_dm", form).checked = !!v[i]; else $("#s_" + f, form).value = v[i]; }); upd(); };
+  PATIENT = () => get();
   const get = () => FEATS.map(f => f === "diabetes_med" ? ($("#s_dm", form).checked ? 1 : 0) : +$("#s_" + f, form).value);
   const upd = () => { Object.keys(CFG).forEach(f => $("#o_" + f, form).textContent = $("#s_" + f, form).value); refresh(); };
   form.oninput = upd; form.onclick = e => { const b = e.target.closest("[data-p]"); if (b) setP(presets[b.dataset.p]); };
