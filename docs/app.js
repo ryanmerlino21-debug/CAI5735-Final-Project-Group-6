@@ -6,6 +6,10 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const FEATS = ["time_in_hospital", "num_lab_procedures", "num_procedures", "num_medications", "number_diagnoses", "diabetes_med"];
 const LBL = { time_in_hospital: "Days in hospital", num_lab_procedures: "Lab tests", num_procedures: "Procedures", num_medications: "Medications", number_diagnoses: "Diagnoses", diabetes_med: "Diabetes medication", readmitted: "Readmitted" };
+const UNITS = { time_in_hospital: "Days in hospital (days)", num_lab_procedures: "Lab tests (count per stay)", num_procedures: "Procedures (count per stay)", num_medications: "Medications (count per stay)", number_diagnoses: "Diagnoses (count per stay)", diabetes_med: "Diabetes medication (0 = no, 1 = yes)" };
+const axT = f => UNITS[f] || LBL[f];
+const METRIC_T = { auc: "AUROC (0.5 = coin flip, 1 = perfect)", acc: "Accuracy (share of predictions correct, 0 to 1)", sens: "Sensitivity (share of readmissions caught, 0 to 1)", spec: "Specificity (share of non-readmissions cleared, 0 to 1)", prec: "Precision (share of flagged who returned, 0 to 1)", f1: "F1 score (0 to 1)", j: "Youden's J (sensitivity + specificity - 1)", flag: "Share of patients flagged (0 to 1)" };
+let CUR_AXES = null;
 const MODELS = ["Logistic regression", "Decision tree", "Random forest"];
 const MC = i => [css("--teal"), css("--coral"), css("--violet")][i];
 const S = { tab: "overview", model: "Random forest", thr: 0.40 };
@@ -51,6 +55,11 @@ function h(html) { const t = document.createElement("template"); t.innerHTML = h
 function mk(canvas, cfg) {
   const old = Chart.getChart(canvas); if (old) old.destroy();
   cfg.options = Object.assign({ responsive: true, maintainAspectRatio: false, animation: false }, cfg.options || {});
+  const A = CUR_AXES;
+  if (A) {
+    if (["doughnut", "pie", "radar"].includes(cfg.type)) { cfg.options.plugins = cfg.options.plugins || {}; if (A.t && !(cfg.options.plugins.title && cfg.options.plugins.title.display)) cfg.options.plugins.title = { display: true, text: A.t, font: { size: 12, weight: "600" } }; }
+    else { cfg.options.scales = cfg.options.scales || {}; ["x", "y", "y2"].forEach(k => { if (A[k] === undefined) return; const sc = (cfg.options.scales[k] = cfg.options.scales[k] || {}); if (!sc.title || !sc.title.display) sc.title = { display: true, text: A[k] }; }); }
+  }
   return new Chart(canvas, cfg);
 }
 function themeCharts() {
@@ -85,7 +94,9 @@ function card({ title, toggles = [], height = 300, kind = "canvas", caption = ""
   else if (kind === "both") body.innerHTML = `<div class="cbox" style="height:${height}px"><canvas></canvas></div><div class="alt" style="display:none"></div>`;
   el.st = st;
   el.redraw = () => {
+    CUR_AXES = AXES[title] ? AXES[title](st) : null;
     draw(st, kind === "html" ? body : $("canvas", el), el);
+    CUR_AXES = null;
     $(".how", el).innerHTML = caption ? "<b>How to read this.</b> " + (typeof caption === "function" ? caption(st, el) : caption) : "";
     if (!caption) $(".how", el).remove();
     const sf = SAYS[title], sp = $(".says", el);
@@ -154,6 +165,25 @@ function makeBins(v, mode) {
 }
 const VAR_OPTS = FEATS.map(f => [f, LBL[f]]);
 
+
+/* axis titles with units, applied by mk() whenever a chart does not set its own */
+const AXES = {
+  "Model comparison": st => st.ch === "radar" ? { t: "Score on each metric (0 to 1)" } : st.ch === "bar" ? { x: METRIC_T[st.metric], y: "Model" } : st.ch === "dots" ? { x: "Model", y: METRIC_T[st.metric] } : null,
+  "Outcome groups": st => st.ch === "bar" ? { x: "Outcome group", y: "Number of stays (count)" } : { t: "Number of stays in each group (count)" },
+  "Split sizes and readmission rate": () => ({ y: "Data set", x: undefined }),
+  "Distribution": () => ({ y: "Share of group (% of stays)" }),
+  "Readmission rate from lowest to highest values": st => st.t === "radar" ? { t: "Readmission rate (% of stays) in each group" } : { x: "Group of the variable (lowest to highest, equal-size groups)", y: "Readmission rate (% of stays)" },
+  "Context variables": st => ({ t: "Number of stays in each group (count)", x: { age: "Age group (years)", gender: "Gender", admission_type: "Admission type" }[st.v], y: st.t === "rate" ? "Readmission rate (% of stays)" : st.t === "n" ? "Number of stays (count)" : "Share of group (%)" }),
+  "Readmitted vs not readmitted": st => st.v === "d" ? { y: "Variable", x: "Effect size (standard deviations, readmitted minus not)" } : st.v === "g" ? { x: "Variable", y: "Group average as an index (overall average = 100)" } : { t: "Group average as an index (overall average = 100)" },
+  "Variable importance": st => st.t === "radar" ? { t: "Share of importance (%) for each variable" } : st.t === "all" ? { x: "Variable", y: "Share of importance (%)" } : { y: "Variable" },
+  "Bootstrap check of the AUROC": () => ({ y: "Model" }),
+  "Metrics at every threshold": st => ({ y: st.t === "stack" ? "Share of test patients (%)" : st.m === "ss" ? "Sensitivity or specificity (0 to 1)" : METRIC_T[st.m] }),
+  "Why did the logistic regression say that?": st => st.v === "r" ? { t: "Percentile of this patient among all stays (0 to 100)" } : { y: "Variable" },
+  "What if? Change one variable and watch the prediction": () => ({ y: "Predicted chance of readmission (%)" }),
+  "Default threshold vs our threshold": st => st.t === "radar" ? { t: "Score on each metric (0 to 1)" } : { x: "Model", y: METRIC_T[st.m] },
+  "Readmission rate by value": () => ({}),
+  "Scatter plot": () => ({})
+};
 /* ---------------- "What it says": a plain language reading of each chart, with live numbers ---------------- */
 let PATIENT = null;
 const dWord = d => { d = Math.abs(d); return d < 0.1 ? "almost no difference" : d < 0.2 ? "a very small difference" : d < 0.5 ? "a small difference" : "a clear difference"; };
@@ -387,7 +417,7 @@ PAGES.dataset = () => {
       draw(st, body) {
         const R = rng(st.seed || 3), pool = D.readmitted.map((_, i) => i).filter(i => st.f === "all" || D.readmitted[i] === +st.f);
         const pick = []; while (pick.length < Math.min(+st.n, pool.length)) { const i = pool[Math.floor(R() * pool.length)]; if (!pick.includes(i)) pick.push(i); }
-        body.innerHTML = `<div class="scroll"><table class="dtab"><tr><th>Age</th><th>Gender</th><th>Admission</th>${FEATS.map(f => `<th class="n">${LBL[f]}</th>`).join("")}<th>Readmitted?</th></tr>${pick.map(i => `<tr><td>${D.cats.age[i]}</td><td>${D.cats.gender[i]}</td><td>${D.cats.admission_type[i]}</td>${FEATS.map(f => `<td class="n">${f === "diabetes_med" ? (D.data[f][i] ? "Yes" : "No") : D.data[f][i]}</td>`).join("")}<td><span class="tag" style="background:${D.readmitted[i] ? css("--coral") : css("--teal")};color:#fff">${D.readmitted[i] ? "Yes" : "No"}</span></td></tr>`).join("")}</table></div>`;
+        body.innerHTML = `<div class="scroll"><table class="dtab"><tr><th>Age</th><th>Gender</th><th>Admission</th>${FEATS.map(f => `<th class="n">${axT(f)}</th>`).join("")}<th>Readmitted?</th></tr>${pick.map(i => `<tr><td>${D.cats.age[i]}</td><td>${D.cats.gender[i]}</td><td>${D.cats.admission_type[i]}</td>${FEATS.map(f => `<td class="n">${f === "diabetes_med" ? (D.data[f][i] ? "Yes" : "No") : D.data[f][i]}</td>`).join("")}<td><span class="tag" style="background:${D.readmitted[i] ? css("--coral") : css("--teal")};color:#fff">${D.readmitted[i] ? "Yes" : "No"}</span></td></tr>`).join("")}</table></div>`;
       },
       caption: "Each row is one hospital stay. The first three columns are not used in our models. The last column is what we are trying to predict."
     })));
@@ -400,7 +430,7 @@ PAGES.dataset = () => {
         const nt = D.n_test, ntr = D.n_train, pt = sum(D.y_test), ptr = sum(D.readmitted) - pt;
         const data = st.v === "n" ? [[ntr - ptr, ptr], [nt - pt, pt]] : [[(ntr - ptr) / ntr * 100, ptr / ntr * 100], [(nt - pt) / nt * 100, pt / nt * 100]];
         mk(cv, { type: "bar", data: { labels: ["Training", "Testing"], datasets: [{ label: "Not readmitted", data: data.map(d => d[0]), backgroundColor: css("--teal") }, { label: "Readmitted", data: data.map(d => d[1]), backgroundColor: css("--coral") }] },
-          options: { indexAxis: "y", scales: { x: { stacked: true, title: { display: true, text: st.v === "n" ? "Stays" : "% of the set" } }, y: { stacked: true } } } });
+          options: { indexAxis: "y", scales: { x: { stacked: true, title: { display: true, text: st.v === "n" ? "Number of stays (count)" : "Share of the data set (% of stays)" } }, y: { stacked: true } } } });
       },
       caption: "Both bars have about the same coral share. That is what stratifying means, and it keeps the test fair."
     })));
@@ -429,7 +459,7 @@ PAGES.explore = () => {
         st._i = st.v === "diabetes_med" ? `Share prescribed a diabetes medication: ${pct(mean(v.filter((_, i) => !y[i])), 0)} for not readmitted, ${pct(mean(v.filter((_, i) => y[i])), 0)} for readmitted.` : `Average for not readmitted: ${mean(v.filter((_, i) => !y[i])).toFixed(2)}. Average for readmitted: ${mean(v.filter((_, i) => y[i])).toFixed(2)}.`;
         if (st.view === "box") {
           const grp = st.grp === "all" ? [["All stays", v, css("--violet")]] : [["Not readmitted", v.filter((_, i) => !y[i]), css("--teal")], ["Readmitted", v.filter((_, i) => y[i]), css("--coral")]];
-          showCanvas(el, false).innerHTML = boxSVG(grp.map(([label, a, color]) => ({ label, color, mean: mean(a), q: [quant(a, .05), quant(a, .25), quant(a, .5), quant(a, .75), quant(a, .95)] })), Math.min(...v), Math.max(...v), LBL[st.v]);
+          showCanvas(el, false).innerHTML = boxSVG(grp.map(([label, a, color]) => ({ label, color, mean: mean(a), q: [quant(a, .05), quant(a, .25), quant(a, .5), quant(a, .75), quant(a, .95)] })), Math.min(...v), Math.max(...v), axT(st.v));
           return;
         }
         showCanvas(el, true);
@@ -441,7 +471,7 @@ PAGES.explore = () => {
           return line ? { label, data: d, borderColor: col, backgroundColor: col + "33", fill: true, pointRadius: 0, tension: .35 } : { label, data: d, backgroundColor: col + "cc", borderRadius: 3 };
         };
         const ds = st.grp === "all" ? [mkds("All stays", cnt(() => true), y.length, css("--violet"))] : [mkds("Not readmitted", cnt(i => !y[i]), n0, css("--teal")), mkds("Readmitted", cnt(i => y[i]), n1, css("--coral"))];
-        mk(cv, { type: line ? "line" : "bar", data: { labels, datasets: ds }, options: { scales: { x: { title: { display: true, text: LBL[st.v] }, grid: { display: false } }, y: { beginAtZero: true, max: st.view === "cdf" ? 100 : undefined, title: { display: true, text: st.view === "cdf" ? "Cumulative % of group" : st.scale === "pct" ? "% of stays in the group" : "Stays" } } } } });
+        mk(cv, { type: line ? "line" : "bar", data: { labels, datasets: ds }, options: { scales: { x: { title: { display: true, text: axT(st.v) }, grid: { display: false } }, y: { beginAtZero: true, max: st.view === "cdf" ? 100 : undefined, title: { display: true, text: st.view === "cdf" ? "Cumulative share of group (%)" : st.scale === "pct" ? "Share of group (% of stays)" : "Number of stays (count)" } } } } });
       },
       caption: st => `${st.view === "box" ? "The box covers the middle half of stays, the thick black line is the median, the whiskers reach the 5th and 95th percentiles, and the yellow dot is the average." : st.view === "cdf" ? "Each line shows the share of stays at or below a value. If one group were different, its line would sit clearly above or below the other." : "Each bar is the share of a group with that value. When the coral and teal shapes rise and fall together, that variable does not separate the groups."} ${st._i}`
     })));
@@ -458,15 +488,15 @@ PAGES.explore = () => {
         st._lo = Math.min(...rate.filter(v => v !== null)); st._hi = Math.max(...rate.filter(v => v !== null));
         if (st.t === "strip") {
           const lo = Math.min(30, st._lo), hi = Math.max(50, st._hi);
-          showCanvas(el, false).innerHTML = `<div class="strip" style="grid-template-columns:repeat(${labels.length},minmax(46px,1fr))">${labels.map((l, i) => { const q = rate[i] === null ? .5 : (rate[i] - lo) / (hi - lo), c = rate[i] >= all ? css("--coral") : css("--teal"), a = Math.round(25 + 75 * Math.abs(rate[i] - all) / (hi - lo) * 2); return `<div style="background:color-mix(in srgb,${c} ${Math.min(100, a)}%,${css("--soft")})" title="n = ${n[i]}">${rate[i] === null ? "-" : rate[i].toFixed(0) + "%"}<small>${l}</small></div>`; }).join("")}</div><p class="note" style="color:var(--muted);font-size:.8rem">Coral cells are above the overall rate (${all.toFixed(0)}%), teal cells are below it.</p>`;
+          showCanvas(el, false).innerHTML = `<div class="strip" style="grid-template-columns:repeat(${labels.length},minmax(46px,1fr))">${labels.map((l, i) => { const q = rate[i] === null ? .5 : (rate[i] - lo) / (hi - lo), c = rate[i] >= all ? css("--coral") : css("--teal"), a = Math.round(25 + 75 * Math.abs(rate[i] - all) / (hi - lo) * 2); return `<div style="background:color-mix(in srgb,${c} ${Math.min(100, a)}%,${css("--soft")})" title="n = ${n[i]}">${rate[i] === null ? "-" : rate[i].toFixed(0) + "%"}<small>${l}</small></div>`; }).join("")}</div><p class="note" style="color:var(--muted);font-size:.8rem">Horizontal axis: ${axT(st.v)}. Each cell shows the readmission rate (% of stays) for that value or group. Coral cells are above the overall rate (${all.toFixed(0)}%), teal cells are below it.</p>`;
           return;
         }
         showCanvas(el, true);
-        if (st.t === "combo") return mk(cv, { type: "bar", data: { labels, datasets: [{ type: "bar", label: "Stays (count)", data: n, backgroundColor: css("--violet") + "66", borderRadius: 4, yAxisID: "y" }, { type: "line", label: "Readmission rate", data: rate, borderColor: css("--coral"), backgroundColor: css("--coral"), pointRadius: 4, tension: .25, yAxisID: "y2" }] }, options: { scales: { x: { title: { display: true, text: LBL[st.v] }, grid: { display: false } }, y: { beginAtZero: true, title: { display: true, text: "Stays" } }, y2: { position: "right", min: 0, max: 100, grid: { drawOnChartArea: false }, title: { display: true, text: "% readmitted" } } } } });
-        if (st.t === "stack") return mk(cv, { type: "bar", data: { labels, datasets: [{ label: "Not readmitted", data: rate.map(v => v === null ? null : 100 - v), backgroundColor: css("--teal") }, { label: "Readmitted", data: rate, backgroundColor: css("--coral") }] }, options: { scales: { x: { stacked: true, title: { display: true, text: LBL[st.v] }, grid: { display: false } }, y: { stacked: true, max: 100, title: { display: true, text: "% of stays" } } } } });
+        if (st.t === "combo") return mk(cv, { type: "bar", data: { labels, datasets: [{ type: "bar", label: "Stays (count)", data: n, backgroundColor: css("--violet") + "66", borderRadius: 4, yAxisID: "y" }, { type: "line", label: "Readmission rate", data: rate, borderColor: css("--coral"), backgroundColor: css("--coral"), pointRadius: 4, tension: .25, yAxisID: "y2" }] }, options: { scales: { x: { title: { display: true, text: axT(st.v) }, grid: { display: false } }, y: { beginAtZero: true, title: { display: true, text: "Number of stays (count)" } }, y2: { position: "right", min: 0, max: 100, grid: { drawOnChartArea: false }, title: { display: true, text: "Readmission rate (% of stays)" } } } } });
+        if (st.t === "stack") return mk(cv, { type: "bar", data: { labels, datasets: [{ label: "Not readmitted", data: rate.map(v => v === null ? null : 100 - v), backgroundColor: css("--teal") }, { label: "Readmitted", data: rate, backgroundColor: css("--coral") }] }, options: { scales: { x: { stacked: true, title: { display: true, text: axT(st.v) }, grid: { display: false } }, y: { stacked: true, max: 100, title: { display: true, text: "Share of stays (%)" } } } } });
         const ds = [{ type: st.t === "bar" ? "bar" : "line", label: "Readmission rate", data: rate, backgroundColor: st.t === "bar" ? css("--coral") + "cc" : css("--coral") + "33", fill: st.t === "area", borderColor: css("--coral"), tension: .25, pointRadius: 4, borderRadius: 5 },
           { type: "line", label: `Overall (${all.toFixed(0)}%)`, data: labels.map(() => all), borderColor: css("--ink"), borderDash: [6, 5], pointRadius: 0, borderWidth: 1.5 }];
-        mk(cv, { type: "bar", data: { labels, datasets: ds }, options: { scales: { y: { min: 0, title: { display: true, text: "% readmitted" } }, x: { title: { display: true, text: LBL[st.v] }, grid: { display: false } } },
+        mk(cv, { type: "bar", data: { labels, datasets: ds }, options: { scales: { y: { min: 0, title: { display: true, text: "Readmission rate (% of stays)" } }, x: { title: { display: true, text: axT(st.v) }, grid: { display: false } } },
           plugins: { tooltip: { callbacks: { label: c => c.datasetIndex ? c.dataset.label : (() => { const k = c.dataIndex, q = r[k] / n[k], e = 1.96 * Math.sqrt(q * (1 - q) / n[k]) * 100; return ` ${c.parsed.y.toFixed(1)}% (n = ${n[k]}, ±${e.toFixed(1)})`; })() } } } } });
       },
       caption: st => `The dashed line is the overall rate (in the heat strip, coral cells are above it and teal cells are below it). Bars far from it only matter if they also have many stays, so hover to see n and an approximate margin of error. Here the rate runs from ${st._lo.toFixed(0)}% to ${st._hi.toFixed(0)}%.`
@@ -481,7 +511,7 @@ PAGES.explore = () => {
         const names = Array.from({ length: k }, (_, i) => i === 0 ? "Lowest" : i === k - 1 ? "Highest" : `Group ${i + 1}`);
         const ds = FEATS.slice(0, 5).map((f, j) => { const idx = quantBins(f, k), r = Array(k).fill(0), n = Array(k).fill(0); idx.forEach((b, i) => { n[b]++; r[b] += D.readmitted[i]; }); return { label: LBL[f], data: names.map((_, i) => n[i] ? r[i] / n[i] * 100 : null), borderColor: cols[j], backgroundColor: st.t === "bar" ? cols[j] + "cc" : cols[j] + "22", pointRadius: 4, tension: .2, borderRadius: 4 }; });
         if (st.t === "radar") return mk(cv, { type: "radar", data: { labels: names, datasets: ds }, options: { scales: { r: { min: 20, max: 60, ticks: { backdropColor: "transparent" } } } } });
-        mk(cv, { type: st.t, data: { labels: names, datasets: ds }, options: { scales: { y: { min: 20, max: 60, title: { display: true, text: "% readmitted" } } } } });
+        mk(cv, { type: st.t, data: { labels: names, datasets: ds }, options: { scales: { y: { min: 20, max: 60, title: { display: true, text: "Readmission rate (% of stays)" } } } } });
       },
       caption: "Each line is one variable. If readmission rose steadily with a variable, its line would climb from left to right. Most of these lines wander around the overall 40% without a clear trend."
     })));
@@ -495,12 +525,12 @@ PAGES.explore = () => {
         const k = +st.k, X = quantInfo(st.x, k), Y = quantInfo(st.y, k), nx = X.labels.length, ny = Y.labels.length, n = Array.from({ length: ny }, () => Array(nx).fill(0)), r = Array.from({ length: ny }, () => Array(nx).fill(0));
         D.readmitted.forEach((v, i) => { n[Y.idx[i]][X.idx[i]]++; r[Y.idx[i]][X.idx[i]] += v; }); const all = mean(D.readmitted) * 100;
         if (st.t === "heat") {
-          showCanvas(el, false).innerHTML = `<div class="scroll"><table class="heat"><tr><th>${LBL[st.y]} ↓ / ${LBL[st.x]} →</th>${X.labels.map(l => `<th>${l}</th>`).join("")}</tr>${Y.labels.map((yl, j) => `<tr><th style="text-align:right">${yl}</th>${X.labels.map((_, i) => { const q = n[j][i] ? r[j][i] / n[j][i] * 100 : null, c = q >= all ? css("--coral") : css("--teal"), a = q === null ? 0 : Math.min(95, 15 + Math.abs(q - all) * 4); return `<td style="background:color-mix(in srgb,${c} ${Math.round(a)}%,transparent)" title="n = ${n[j][i]}">${q === null ? "-" : q.toFixed(0) + "%"}<br><small style="opacity:.65">n=${n[j][i]}</small></td>`; }).join("")}</tr>`).join("")}</table></div>`;
+          showCanvas(el, false).innerHTML = `<div class="scroll"><table class="heat"><tr><th>${axT(st.y)} ↓ / ${axT(st.x)} →</th>${X.labels.map(l => `<th>${l}</th>`).join("")}</tr>${Y.labels.map((yl, j) => `<tr><th style="text-align:right">${yl}</th>${X.labels.map((_, i) => { const q = n[j][i] ? r[j][i] / n[j][i] * 100 : null, c = q >= all ? css("--coral") : css("--teal"), a = q === null ? 0 : Math.min(95, 15 + Math.abs(q - all) * 4); return `<td style="background:color-mix(in srgb,${c} ${Math.round(a)}%,transparent)" title="n = ${n[j][i]}">${q === null ? "-" : q.toFixed(0) + "%"}<br><small style="opacity:.65">n=${n[j][i]}</small></td>`; }).join("")}</tr>`).join("")}</table></div>`;
           return;
         }
         showCanvas(el, true); const pts = [];
         for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) if (n[j][i]) pts.push({ x: i, y: j, r: Math.max(4, Math.sqrt(n[j][i]) * 1.1), q: r[j][i] / n[j][i] * 100, n: n[j][i] });
-        mk(cv, { type: "bubble", data: { datasets: [{ data: pts, backgroundColor: pts.map(p => (p.q >= all ? css("--coral") : css("--teal")) + "bb") }] }, options: { plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.raw.q.toFixed(0)}% readmitted (n = ${c.raw.n})` } } }, scales: { x: { min: -.6, max: nx - .4, title: { display: true, text: LBL[st.x] }, ticks: { stepSize: 1, callback: v => X.labels[v] ?? "" } }, y: { min: -.6, max: ny - .4, title: { display: true, text: LBL[st.y] }, ticks: { stepSize: 1, callback: v => Y.labels[v] ?? "" } } } } });
+        mk(cv, { type: "bubble", data: { datasets: [{ data: pts, backgroundColor: pts.map(p => (p.q >= all ? css("--coral") : css("--teal")) + "bb") }] }, options: { plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.raw.q.toFixed(0)}% readmitted (n = ${c.raw.n})` } } }, scales: { x: { min: -.6, max: nx - .4, title: { display: true, text: axT(st.x) }, ticks: { stepSize: 1, callback: v => X.labels[v] ?? "" } }, y: { min: -.6, max: ny - .4, title: { display: true, text: axT(st.y) }, ticks: { stepSize: 1, callback: v => Y.labels[v] ?? "" } } } } });
       },
       caption: st => st.t === "heat" ? "Each cell is a group of stays with both values. Coral cells have a readmission rate above the overall rate and teal cells are below it. Darker means farther from the overall rate. Cells with a small n can be misleading." : "Each bubble is a group of stays. Bigger bubbles have more stays. Coral bubbles have a readmission rate above the overall rate and teal bubbles are below it."
     })));
@@ -514,7 +544,7 @@ PAGES.explore = () => {
         const vals = D.cats[st.v], y = D.readmitted, order = st.v === "age" ? ["0-49", "50-59", "60-69", "70-79", "80+"] : [...new Set(vals)].sort((a, b) => vals.filter(x => x === b).length - vals.filter(x => x === a).length);
         const n = order.map(k => vals.filter(v => v === k).length), r = order.map(k => mean(y.filter((_, i) => vals[i] === k)) * 100), pal = [css("--teal"), css("--coral"), css("--violet"), css("--sun"), "#3b82f6"];
         if (st.t === "donut") return mk(cv, { type: "doughnut", data: { labels: order, datasets: [{ data: n, backgroundColor: pal, borderWidth: 0 }] }, options: { plugins: { legend: { position: "right" } } } });
-        if (st.t === "stack") return mk(cv, { type: "bar", data: { labels: order, datasets: [{ label: "Not readmitted", data: r.map(v => 100 - v), backgroundColor: css("--teal") }, { label: "Readmitted", data: r, backgroundColor: css("--coral") }] }, options: { scales: { x: { stacked: true }, y: { stacked: true, max: 100, title: { display: true, text: "% of group" } } } } });
+        if (st.t === "stack") return mk(cv, { type: "bar", data: { labels: order, datasets: [{ label: "Not readmitted", data: r.map(v => 100 - v), backgroundColor: css("--teal") }, { label: "Readmitted", data: r, backgroundColor: css("--coral") }] }, options: { scales: { x: { stacked: true }, y: { stacked: true, max: 100, title: { display: true, text: "Share of group (%)" } } } } });
         mk(cv, { type: "bar", data: { labels: order, datasets: [{ label: st.t === "rate" ? "% readmitted" : "Stays", data: st.t === "rate" ? r : n, backgroundColor: pal.slice(0, order.length).map(c => c + "dd"), borderRadius: 8 }] },
           options: { plugins: { legend: { display: false }, tooltip: { callbacks: { afterLabel: c => st.t === "rate" ? `n = ${n[c.dataIndex]}` : `${r[c.dataIndex].toFixed(1)}% readmitted` } } }, scales: { y: { beginAtZero: true } } } });
       },
@@ -528,8 +558,8 @@ PAGES.explore = () => {
         const names = [...FEATS, "readmitted"], cols = names.map(n => n === "readmitted" ? D.readmitted : D.data[n]);
         const cell = r => { const a = Math.min(1, Math.abs(r) * 1.6); const c = r >= 0 ? css("--coral") : css("--teal"); return `<td style="background:color-mix(in srgb,${c} ${Math.round(a * 100)}%,transparent)" title="r = ${r.toFixed(3)}">${st.num === "on" ? r.toFixed(2) : "&nbsp;&nbsp;"}</td>`; };
         let html;
-        if (st.rows === "out") html = `<table class="heat"><tr><th></th><th>Correlation with readmitted</th></tr>${FEATS.map((f, i) => `<tr><th style="text-align:right">${LBL[f]}</th>${cell(pearson(cols[i], D.readmitted))}</tr>`).join("")}</table>`;
-        else html = `<div class="scroll"><table class="heat"><tr><th></th>${names.map(n => `<th>${LBL[n]}</th>`).join("")}</tr>${names.map((a, i) => `<tr><th style="text-align:right">${LBL[a]}</th>${names.map((b, j) => cell(i === j ? 1 : pearson(cols[i], cols[j]))).join("")}</tr>`).join("")}</table></div>`;
+        if (st.rows === "out") html = `<table class="heat"><tr><th></th><th>Correlation with readmitted (r, -1 to 1)</th></tr>${FEATS.map((f, i) => `<tr><th style="text-align:right">${LBL[f]}</th>${cell(pearson(cols[i], D.readmitted))}</tr>`).join("")}</table>`;
+        else html = `<div class="scroll"><table class="heat"><tr><th>Correlation (r, -1 to 1)</th>${names.map(n => `<th>${LBL[n]}</th>`).join("")}</tr>${names.map((a, i) => `<tr><th style="text-align:right">${LBL[a]}</th>${names.map((b, j) => cell(i === j ? 1 : pearson(cols[i], cols[j]))).join("")}</tr>`).join("")}</table></div>`;
         body.innerHTML = html;
       },
       caption: "Coral cells mean the two variables rise together, teal cells mean one rises as the other falls, and darker means stronger. The Readmitted row shows what we care about, and all of those are close to zero. Medications and diagnoses move together, which can make a model's job harder."
@@ -542,7 +572,7 @@ PAGES.explore = () => {
       draw(st, cv) {
         const R = rng(7), N = +st.n, mkp = f => { const o = []; for (let i = 0; i < N; i++) if (f(i)) o.push({ x: D.data[st.x][i] + (R() - .5) * .6, y: D.data[st.y][i] + (R() - .5) * .6 }); return o; };
         const y = D.readmitted, ds = st.c === "on" ? [{ label: "Not readmitted", data: mkp(i => !y[i]), backgroundColor: css("--teal") + "99" }, { label: "Readmitted", data: mkp(i => y[i]), backgroundColor: css("--coral") + "99" }] : [{ label: "Stays", data: mkp(() => true), backgroundColor: css("--violet") + "88" }];
-        mk(cv, { type: "scatter", data: { datasets: ds.map(d => ({ ...d, pointRadius: 3.5 })) }, options: { scales: { x: { title: { display: true, text: LBL[st.x] } }, y: { title: { display: true, text: LBL[st.y] } } } } });
+        mk(cv, { type: "scatter", data: { datasets: ds.map(d => ({ ...d, pointRadius: 3.5 })) }, options: { scales: { x: { title: { display: true, text: axT(st.x) } }, y: { title: { display: true, text: axT(st.y) } } } } });
       },
       caption: "Each dot is one stay (jittered a little so dots do not stack). If coral and teal dots formed separate clouds, two variables could predict readmission. Here they are mixed together almost completely."
     })));
@@ -553,8 +583,8 @@ PAGES.explore = () => {
       draw(st, cv) {
         const y = D.readmitted, rows = FEATS.map(f => { const v = D.data[f], a = v.filter((_, i) => y[i]), b = v.filter((_, i) => !y[i]); return { f, d: (mean(a) - mean(b)) / Math.sqrt((sd(a) ** 2 + sd(b) ** 2) / 2), ia: mean(a) / mean(v) * 100, ib: mean(b) / mean(v) * 100 }; });
         if (st.v === "d") { rows.sort((a, b) => Math.abs(b.d) - Math.abs(a.d)); st._t = LBL[rows[0].f];
-          mk(cv, { type: "bar", data: { labels: rows.map(r => LBL[r.f]), datasets: [{ data: rows.map(r => r.d), backgroundColor: rows.map(r => r.d >= 0 ? css("--coral") : css("--teal")), borderRadius: 6 }] }, options: { indexAxis: "y", plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: "Standardized difference (readmitted minus not)" } } } } }); }
-        else if (st.v === "g") mk(cv, { type: "bar", data: { labels: rows.map(r => LBL[r.f]), datasets: [{ label: "Not readmitted", data: rows.map(r => r.ib), backgroundColor: css("--teal"), borderRadius: 4 }, { label: "Readmitted", data: rows.map(r => r.ia), backgroundColor: css("--coral"), borderRadius: 4 }] }, options: { scales: { y: { min: 80, title: { display: true, text: "Group average (overall average = 100)" } } } } });
+          mk(cv, { type: "bar", data: { labels: rows.map(r => LBL[r.f]), datasets: [{ data: rows.map(r => r.d), backgroundColor: rows.map(r => r.d >= 0 ? css("--coral") : css("--teal")), borderRadius: 6 }] }, options: { indexAxis: "y", plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: "Effect size (standard deviations, readmitted minus not)" } } } } }); }
+        else if (st.v === "g") mk(cv, { type: "bar", data: { labels: rows.map(r => LBL[r.f]), datasets: [{ label: "Not readmitted", data: rows.map(r => r.ib), backgroundColor: css("--teal"), borderRadius: 4 }, { label: "Readmitted", data: rows.map(r => r.ia), backgroundColor: css("--coral"), borderRadius: 4 }] }, options: { scales: { y: { min: 80, title: { display: true, text: "Group average as an index (overall average = 100)" } } } } });
         else mk(cv, { type: "radar", data: { labels: rows.map(r => LBL[r.f]), datasets: [{ label: "Not readmitted", data: rows.map(r => r.ib), borderColor: css("--teal"), backgroundColor: css("--teal") + "33" }, { label: "Readmitted", data: rows.map(r => r.ia), borderColor: css("--coral"), backgroundColor: css("--coral") + "33" }] }, options: { scales: { r: { min: 80, max: 120, ticks: { backdropColor: "transparent" } } } } });
       },
       caption: st => st.v === "d" ? `This is the group difference measured in standard deviations (Cohen's d). Values near 0 mean no difference. Even the biggest one (${st._t}) is small, and by convention 0.2 is a "small" effect.` : "Each point or bar is a group's average compared with the overall average (100). The two groups are almost the same on every variable."
@@ -611,11 +641,11 @@ PAGES.models = () => {
       const gain = m => { const o = order(m), pts = [{ x: 0, y: 0 }]; let c = 0; o.forEach((i, k) => { c += D.y_test[i]; if ((k + 1) % 15 === 0 || k === n - 1) pts.push({ x: (k + 1) / n, y: c / sum(D.y_test) }); }); return pts; };
       const cal = m => { const o = order(m).reverse(), pts = [], b = 10, sz = Math.floor(n / b); for (let j = 0; j < b; j++) { const part = o.slice(j * sz, j === b - 1 ? n : (j + 1) * sz); pts.push({ x: mean(part.map(i => D.probs[m][i])), y: mean(part.map(i => D.y_test[i])) }); } return pts; };
       let ds, xt, yt, xr = [0, 1], yr = [0, 1], type = "scatter";
-      if (key === "roc") { ds = list.map(({ m, i }) => ({ label: `${m} (AUROC ${f3(ROC[m].auc)})`, data: ROC[m].roc, ...sty(m, i) })); ds.push({ label: "Coin flip", data: [{ x: 0, y: 0 }, { x: 1, y: 1 }], showLine: true, pointRadius: 0, borderDash: [5, 5], borderColor: css("--muted"), borderWidth: 1 }); const c = confusion(D.probs[S.model], D.y_test, S.thr); ds.push({ label: "Current threshold", data: [{ x: 1 - c.spec, y: c.sens }], pointRadius: 7, backgroundColor: css("--ink"), borderColor: css("--paper"), borderWidth: 2 }); xt = "False positive rate (1 - specificity)"; yt = "Sensitivity"; }
-      else if (key === "pr") { ds = list.map(({ m, i }) => ({ label: `${m} (AP ${f3(PR[m].ap)})`, data: PR[m].pr, ...sty(m, i) })); ds.push({ label: `Always guess yes (${pct(base, 0)})`, data: [{ x: 0, y: base }, { x: 1, y: base }], showLine: true, pointRadius: 0, borderDash: [5, 5], borderColor: css("--muted"), borderWidth: 1 }); const c = confusion(D.probs[S.model], D.y_test, S.thr); ds.push({ label: "Current threshold", data: [{ x: c.sens, y: c.prec }], pointRadius: 7, backgroundColor: css("--ink"), borderColor: css("--paper"), borderWidth: 2 }); xt = "Recall (sensitivity)"; yt = "Precision"; yr = [.2, 1]; }
-      else if (key === "gain") { ds = list.map(({ m, i }) => ({ label: m, data: gain(m), ...sty(m, i) })); ds.push({ label: "Random order", data: [{ x: 0, y: 0 }, { x: 1, y: 1 }], showLine: true, pointRadius: 0, borderDash: [5, 5], borderColor: css("--muted"), borderWidth: 1 }); xt = "Share of patients called (highest risk first)"; yt = "Share of all readmissions caught"; }
-      else if (key === "lift") { ds = list.map(({ m, i }) => ({ label: m, data: gain(m).filter(p => p.x > .04).map(p => ({ x: p.x, y: p.y / p.x })), ...sty(m, i) })); ds.push({ label: "Random order (1.0)", data: [{ x: .05, y: 1 }, { x: 1, y: 1 }], showLine: true, pointRadius: 0, borderDash: [5, 5], borderColor: css("--muted"), borderWidth: 1 }); xt = "Share of patients called (highest risk first)"; yt = "Lift (times better than random)"; yr = [.6, 2]; }
-      else { ds = list.map(({ m, i }) => ({ label: m, data: cal(m), ...sty(m, i), pointRadius: 4 })); ds.push({ label: "Perfectly calibrated", data: [{ x: 0, y: 0 }, { x: 1, y: 1 }], showLine: true, pointRadius: 0, borderDash: [5, 5], borderColor: css("--muted"), borderWidth: 1 }); xt = "Predicted probability"; yt = "Actual share readmitted"; xr = [.1, .8]; yr = [.1, .8]; }
+      if (key === "roc") { ds = list.map(({ m, i }) => ({ label: `${m} (AUROC ${f3(ROC[m].auc)})`, data: ROC[m].roc, ...sty(m, i) })); ds.push({ label: "Coin flip", data: [{ x: 0, y: 0 }, { x: 1, y: 1 }], showLine: true, pointRadius: 0, borderDash: [5, 5], borderColor: css("--muted"), borderWidth: 1 }); const c = confusion(D.probs[S.model], D.y_test, S.thr); ds.push({ label: "Current threshold", data: [{ x: 1 - c.spec, y: c.sens }], pointRadius: 7, backgroundColor: css("--ink"), borderColor: css("--paper"), borderWidth: 2 }); xt = "False positive rate (share of non-readmitted flagged, 0 to 1)"; yt = "Sensitivity (share of readmissions caught, 0 to 1)"; }
+      else if (key === "pr") { ds = list.map(({ m, i }) => ({ label: `${m} (AP ${f3(PR[m].ap)})`, data: PR[m].pr, ...sty(m, i) })); ds.push({ label: `Always guess yes (${pct(base, 0)})`, data: [{ x: 0, y: base }, { x: 1, y: base }], showLine: true, pointRadius: 0, borderDash: [5, 5], borderColor: css("--muted"), borderWidth: 1 }); const c = confusion(D.probs[S.model], D.y_test, S.thr); ds.push({ label: "Current threshold", data: [{ x: c.sens, y: c.prec }], pointRadius: 7, backgroundColor: css("--ink"), borderColor: css("--paper"), borderWidth: 2 }); xt = "Recall (share of readmissions caught, 0 to 1)"; yt = "Precision (share of flagged who returned, 0 to 1)"; yr = [.2, 1]; }
+      else if (key === "gain") { ds = list.map(({ m, i }) => ({ label: m, data: gain(m), ...sty(m, i) })); ds.push({ label: "Random order", data: [{ x: 0, y: 0 }, { x: 1, y: 1 }], showLine: true, pointRadius: 0, borderDash: [5, 5], borderColor: css("--muted"), borderWidth: 1 }); xt = "Share of patients called, highest risk first (0 to 1)"; yt = "Share of all readmissions reached (0 to 1)"; }
+      else if (key === "lift") { ds = list.map(({ m, i }) => ({ label: m, data: gain(m).filter(p => p.x > .04).map(p => ({ x: p.x, y: p.y / p.x })), ...sty(m, i) })); ds.push({ label: "Random order (1.0)", data: [{ x: .05, y: 1 }, { x: 1, y: 1 }], showLine: true, pointRadius: 0, borderDash: [5, 5], borderColor: css("--muted"), borderWidth: 1 }); xt = "Share of patients called, highest risk first (0 to 1)"; yt = "Lift (times better than random calling)"; yr = [.6, 2]; }
+      else { ds = list.map(({ m, i }) => ({ label: m, data: cal(m), ...sty(m, i), pointRadius: 4 })); ds.push({ label: "Perfectly calibrated", data: [{ x: 0, y: 0 }, { x: 1, y: 1 }], showLine: true, pointRadius: 0, borderDash: [5, 5], borderColor: css("--muted"), borderWidth: 1 }); xt = "Predicted probability of readmission (0 to 1)"; yt = "Actual share readmitted (0 to 1)"; xr = [.1, .8]; yr = [.1, .8]; }
       mk(cv, { type, data: { datasets: ds }, options: { scales: { x: { min: xr[0], max: xr[1], title: { display: true, text: xt } }, y: { min: yr[0], max: yr[1], title: { display: true, text: yt } } }, plugins: { legend: { labels: { boxWidth: 10, font: { size: 10 } } } } } });
     },
     caption: st => ({ roc: "A curve that bows toward the top left is better, and the dashed diagonal is a coin flip. Ours hug the diagonal. The black dot is where the current threshold sits on the selected model.", pr: "Precision is how often a flagged patient really comes back. The dashed line is what you would get by flagging everyone. Our curves stay close to it.", gain: "If we called patients from highest to lowest predicted risk, this shows what share of all readmissions we would reach. The dashed line is calling patients in random order. Higher above it is better.", lift: "Lift is how many times more readmissions we find than random calling would at the same number of calls. A lift of 1.0 means no better than random.", cal: "Each point is a tenth of the patients grouped by predicted risk. If a model were well calibrated, the points would follow the dashed line. Ours are squeezed into a narrow range because the models are not confident." })[st.c]
@@ -632,7 +662,7 @@ PAGES.models = () => {
         if (st.st === "line") { const sm = x => x.map((_, i) => mean(x.slice(Math.max(0, i - 1), i + 2))); a = sm(a); b = sm(b); }
         if (st.st === "cdf") { let t = 0, u = 0; a = a.map(v => (t += v)); b = b.map(v => (u += v)); }
         const bar = st.st === "bar", mkd = (label, d, col) => bar ? { label, data: d, backgroundColor: col + "aa", borderRadius: 3 } : { label, data: d, borderColor: col, backgroundColor: col + "33", fill: st.st === "line", pointRadius: 0, tension: .3 };
-        mk(cv, { type: bar ? "bar" : "line", data: { labels: lab, datasets: [mkd("Not readmitted", a, css("--teal")), mkd("Readmitted", b, css("--coral"))] }, options: { scales: { x: { title: { display: true, text: "Predicted probability of readmission" }, grid: { display: false }, ticks: { maxTicksLimit: 10 } }, y: { title: { display: true, text: st.st === "cdf" ? "Cumulative % of group" : "% of group" } } } } });
+        mk(cv, { type: bar ? "bar" : "line", data: { labels: lab, datasets: [mkd("Not readmitted", a, css("--teal")), mkd("Readmitted", b, css("--coral"))] }, options: { scales: { x: { title: { display: true, text: "Predicted probability of readmission (0 to 1)" }, grid: { display: false }, ticks: { maxTicksLimit: 10 } }, y: { title: { display: true, text: st.st === "cdf" ? "Cumulative share of group (%)" : "Share of group (% of test stays)" } } } } });
       },
       caption: st => st.st === "cdf" ? "Each line shows the share of a group with a predicted probability at or below that value. A model that separates the groups well would have the lines far apart. Ours are nearly on top of each other." : "A good model pushes the teal shape to the left and the coral shape to the right. Ours overlap almost completely, which is why no threshold can separate the groups well."
     })));
@@ -654,7 +684,7 @@ PAGES.models = () => {
         if (st.t === "all") return mk(cv, { type: "bar", data: { labels: FEATS.map(f => LBL[f]), datasets: MODELS.map((m, i) => ({ label: m, data: imp(m), backgroundColor: MC(i), borderRadius: 4 })) }, options: { scales: { y: { title: { display: true, text: "Share of importance (%)" } } } } });
         if (st.t === "radar") return mk(cv, { type: "radar", data: { labels: FEATS.map(f => LBL[f]), datasets: [{ label: S.model, data: imp(S.model), borderColor: MC(MODELS.indexOf(S.model)), backgroundColor: MC(MODELS.indexOf(S.model)) + "33" }] }, options: { scales: { r: { min: 0, ticks: { backdropColor: "transparent" } } } } });
         const m = S.model, vals = m === MODELS[0] ? D.lr.coef : D.importance[m], order = vals.map((v, i) => i).sort((a, b) => Math.abs(vals[b]) - Math.abs(vals[a]));
-        mk(cv, { type: "bar", data: { labels: order.map(i => LBL[FEATS[i]]), datasets: [{ data: order.map(i => vals[i]), backgroundColor: order.map(i => m === MODELS[0] ? (vals[i] >= 0 ? css("--coral") : css("--teal")) : MC(MODELS.indexOf(m))), borderRadius: 6 }] }, options: { indexAxis: "y", plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: m === MODELS[0] ? "Standardized coefficient (log-odds per 1 SD)" : "Share of the model's splits (importance)" } } } } });
+        mk(cv, { type: "bar", data: { labels: order.map(i => LBL[FEATS[i]]), datasets: [{ data: order.map(i => vals[i]), backgroundColor: order.map(i => m === MODELS[0] ? (vals[i] >= 0 ? css("--coral") : css("--teal")) : MC(MODELS.indexOf(m))), borderRadius: 6 }] }, options: { indexAxis: "y", plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: m === MODELS[0] ? "Standardized coefficient (change in log-odds per 1 standard deviation)" : "Importance (share of the model's total split gain, 0 to 1)" } } } } });
       },
       caption: st => st.t === "all" ? "Each model's importance scaled to add up to 100%, so you can compare which variables each one leaned on. Number of diagnoses stands out in all three." : S.model === MODELS[0] ? "Each bar is that variable's weight in the logistic regression. Coral pushes the prediction toward readmitted and teal pushes it away. Longer bars matter more." : "Longer bars mean the model relied on that variable more when splitting. Importance shows what the model used, not that the variable causes readmission."
     }),
@@ -673,7 +703,7 @@ PAGES.models = () => {
       toggles: [{ key: "go", type: "button", label: "Run 300 resamples", onclick: (st, el) => { runBoot(); el.redraw(); } }],
       draw(st, cv) {
         if (!BOOT) { const c = cv.getContext("2d"); mk(cv, { type: "bar", data: { labels: [], datasets: [] } }); st._i = "Press the button to resample the test set 300 times."; return; }
-        mk(cv, { type: "bar", data: { labels: MODELS, datasets: [{ data: BOOT.ci, backgroundColor: MODELS.map((_, i) => MC(i) + "cc"), borderRadius: 4 }] }, options: { indexAxis: "y", plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` 95% range: ${f3(c.raw[0])} to ${f3(c.raw[1])}` } } }, scales: { x: { min: .45, max: .75, title: { display: true, text: "AUROC (95% range across 300 resamples)" } } } } });
+        mk(cv, { type: "bar", data: { labels: MODELS, datasets: [{ data: BOOT.ci, backgroundColor: MODELS.map((_, i) => MC(i) + "cc"), borderRadius: 4 }] }, options: { indexAxis: "y", plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` 95% range: ${f3(c.raw[0])} to ${f3(c.raw[1])}` } } }, scales: { x: { min: .45, max: .75, title: { display: true, text: "AUROC (95% range across 300 resamples, 0.5 = coin flip)" } } } } });
         st._i = `The random forest beat logistic regression in ${pct(BOOT.rfBeatsLr, 0)} of resamples. All three ranges overlap and sit well below 0.7.`;
       },
       caption: st => `We redraw the 750 test stays with replacement 300 times and recompute each AUROC. Each bar shows where the middle 95% of results fall. Overlapping bars mean the models are not clearly different. ${st._i || ""}`
@@ -709,12 +739,12 @@ PAGES.threshold = () => {
         if (st.t === "heat") {
           const key = st.m === "ss" ? "sens" : st.m, ts = [0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6], name = st.m === "ss" ? "Sensitivity" : { acc: "Accuracy", prec: "Precision", f1: "F1 score", j: "Youden's J", flag: "Share flagged" }[st.m];
           const vals = ts.map(t => MODELS.map(m => confusion(D.probs[m], D.y_test, t)[key])), all = vals.flat().filter(v => !isNaN(v)), lo = Math.min(...all), hi = Math.max(...all);
-          showCanvas(el, false).innerHTML = `<div class="scroll"><table class="heat"><tr><th>${name}</th>${MODELS.map(m => `<th>${m}</th>`).join("")}</tr>${ts.map((t, i) => `<tr><th style="text-align:right">${t.toFixed(2)}</th>${vals[i].map(v => `<td style="background:color-mix(in srgb,${css("--violet")} ${Math.round(10 + 80 * (v - lo) / (hi - lo || 1))}%,transparent)">${isNaN(v) ? "-" : v.toFixed(2)}</td>`).join("")}</tr>`).join("")}</table></div>`;
+          showCanvas(el, false).innerHTML = `<div class="scroll"><table class="heat"><tr><th>Rows: threshold (0 to 1)<br>Cells: ${name} (0 to 1)</th>${MODELS.map(m => `<th>${m}</th>`).join("")}</tr>${ts.map((t, i) => `<tr><th style="text-align:right">${t.toFixed(2)}</th>${vals[i].map(v => `<td style="background:color-mix(in srgb,${css("--violet")} ${Math.round(10 + 80 * (v - lo) / (hi - lo || 1))}%,transparent)">${isNaN(v) ? "-" : v.toFixed(2)}</td>`).join("")}</tr>`).join("")}</table></div>`;
           return;
         }
         showCanvas(el, true);
         const ts = []; for (let t = 0.1; t <= 0.7001; t += 0.01) ts.push(+t.toFixed(2));
-        if (st.t === "stack") { const cs = ts.map(t => confusion(D.probs[S.model], D.y_test, t)), mkS = (label, key, col, i) => ({ label, data: cs.map(c => c[key] / c.n * 100), backgroundColor: col + "cc", borderWidth: 0, fill: i === 0 ? "origin" : "-1", pointRadius: 0 }); return mk(cv, { type: "line", data: { labels: ts.map(t => t.toFixed(2)), datasets: [mkS("True positive", "tp", css("--violet"), 0), mkS("False positive", "fp", css("--sun"), 1), mkS("False negative", "fn", css("--coral"), 2), mkS("True negative", "tn", css("--teal"), 3)] }, options: { scales: { x: { title: { display: true, text: "Threshold" }, ticks: { maxTicksLimit: 13 } }, y: { stacked: true, max: 100, title: { display: true, text: "% of test patients" } } } } }); }
+        if (st.t === "stack") { const cs = ts.map(t => confusion(D.probs[S.model], D.y_test, t)), mkS = (label, key, col, i) => ({ label, data: cs.map(c => c[key] / c.n * 100), backgroundColor: col + "cc", borderWidth: 0, fill: i === 0 ? "origin" : "-1", pointRadius: 0 }); return mk(cv, { type: "line", data: { labels: ts.map(t => t.toFixed(2)), datasets: [mkS("True positive", "tp", css("--violet"), 0), mkS("False positive", "fp", css("--sun"), 1), mkS("False negative", "fn", css("--coral"), 2), mkS("True negative", "tn", css("--teal"), 3)] }, options: { scales: { x: { title: { display: true, text: "Threshold (predicted probability, 0 to 1)" }, ticks: { maxTicksLimit: 13 } }, y: { stacked: true, max: 100, title: { display: true, text: "Share of test patients (%)" } } } } }); }
         const fill = st.t === "area";
         const line = (m, key, col, lab, dash) => ({ label: lab, data: ts.map(t => confusion(D.probs[m], D.y_test, t)[key]), borderColor: col, backgroundColor: col + "26", fill, pointRadius: 0, tension: .2, borderDash: dash || [] });
         let ds = [];
@@ -722,7 +752,7 @@ PAGES.threshold = () => {
         else if (st.m === "ss") ds = MODELS.flatMap((m, i) => [line(m, "sens", MC(i), m + " sens."), line(m, "spec", MC(i), m + " spec.", [5, 4])]);
         else ds = (st.s === "sel" ? [S.model] : MODELS).map(m => line(m, st.m, MC(MODELS.indexOf(m)), m));
         const mi = ts.indexOf(+S.thr.toFixed(2));
-        mk(cv, { type: "line", data: { labels: ts.map(t => t.toFixed(2)), datasets: ds }, options: { scales: { x: { title: { display: true, text: "Threshold" }, ticks: { maxTicksLimit: 13 } }, y: { min: st.m === "j" ? -.1 : 0, max: st.m === "j" ? .3 : 1 } }, plugins: { legend: { labels: { boxWidth: 12, font: { size: 11 } } } } },
+        mk(cv, { type: "line", data: { labels: ts.map(t => t.toFixed(2)), datasets: ds }, options: { scales: { x: { title: { display: true, text: "Threshold (predicted probability, 0 to 1)" }, ticks: { maxTicksLimit: 13 } }, y: { min: st.m === "j" ? -.1 : 0, max: st.m === "j" ? .3 : 1 } }, plugins: { legend: { labels: { boxWidth: 12, font: { size: 11 } } } } },
           plugins: [{ id: "cur", afterDraw(ch) { const x = ch.scales.x.getPixelForValue(mi), { top, bottom } = ch.chartArea, c = ch.ctx; c.save(); c.strokeStyle = css("--ink"); c.setLineDash([4, 4]); c.beginPath(); c.moveTo(x, top); c.lineTo(x, bottom); c.stroke(); c.restore(); } }] });
       },
       caption: st => st.t === "stack" ? "At each threshold, the 100% height is split into the four outcomes for the selected model. Moving right, the coral missed readmissions grow and the yellow false alarms shrink." : st.t === "heat" ? "Each cell is one metric value for a model at a threshold. Darker violet means a higher value in this table. Pick a metric above to compare how each model behaves as the threshold moves." : "The dashed vertical line is the current threshold. Moving right means fewer patients get flagged: specificity rises and sensitivity falls. Try Youden's J to see where the balance peaks, and Share flagged to see how many patients get called."
@@ -741,7 +771,7 @@ PAGES.threshold = () => {
         const best = costs(S.model), bi = best.indexOf(Math.min(...best)); st._b = ts[bi];
         ds.push({ label: "Flag nobody", data: ts.map(() => none), borderColor: css("--muted"), borderDash: [6, 5], pointRadius: 0, borderWidth: 1 }, { label: "Flag everybody", data: ts.map(() => every), borderColor: css("--ink"), borderDash: [2, 4], pointRadius: 0, borderWidth: 1 });
         ds.push({ type: "scatter", label: "Cheapest threshold (selected model)", data: [{ x: ts[bi].toFixed(2), y: best[bi] }], pointRadius: 7, backgroundColor: css("--coral") });
-        mk(cv, { type: "line", data: { labels: ts.map(t => t.toFixed(2)), datasets: ds }, options: { scales: { x: { title: { display: true, text: "Threshold" }, ticks: { maxTicksLimit: 13 } }, y: { title: { display: true, text: "Cost (false alarms = 1)" }, beginAtZero: true } }, plugins: { legend: { labels: { boxWidth: 12, font: { size: 11 } } } } } });
+        mk(cv, { type: "line", data: { labels: ts.map(t => t.toFixed(2)), datasets: ds }, options: { scales: { x: { title: { display: true, text: "Threshold (predicted probability, 0 to 1)" }, ticks: { maxTicksLimit: 13 } }, y: { title: { display: true, text: "Expected cost per 100 patients (1 false alarm = 1)" }, beginAtZero: true } }, plugins: { legend: { labels: { boxWidth: 12, font: { size: 11 } } } } } });
       },
       caption: st => `Lower is better. A false alarm costs 1 and a missed readmission costs ${st.r}. For the selected model the cheapest threshold is <b>${st._b.toFixed(2)}</b>. The dotted lines are the costs of flagging nobody or everybody, so a useful model should dip below both. As missed readmissions get more costly, the best threshold moves left.`
     })));
@@ -782,7 +812,7 @@ PAGES.try = () => {
     draw(st, cv) {
       const x = get(), z = x.map((v, i) => (v - D.lr.mean[i]) / D.lr.scale[i]), c = z.map((v, i) => v * D.lr.coef[i]), d = st.v === "c" ? c : z;
       if (st.v === "r") return mk(cv, { type: "radar", data: { labels: FEATS.slice(0, 5).map(f => LBL[f]), datasets: [{ label: "This patient", data: FEATS.slice(0, 5).map((f, i) => D.data[f].filter(a => a <= x[i]).length / D.data[f].length * 100), borderColor: css("--coral"), backgroundColor: css("--coral") + "33" }, { label: "Typical stay (50th percentile)", data: [50, 50, 50, 50, 50], borderColor: css("--teal"), borderDash: [5, 4], backgroundColor: "transparent", pointRadius: 0 }] }, options: { scales: { r: { min: 0, max: 100, ticks: { backdropColor: "transparent" } } } } });
-      mk(cv, { type: "bar", data: { labels: FEATS.map(f => LBL[f]), datasets: [{ data: d, backgroundColor: d.map(v => v >= 0 ? css("--coral") : css("--teal")), borderRadius: 5 }] }, options: { indexAxis: "y", plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: st.v === "c" ? "Push on the log-odds of readmission" : "Standard deviations above (+) or below (-) the average stay" } } } } });
+      mk(cv, { type: "bar", data: { labels: FEATS.map(f => LBL[f]), datasets: [{ data: d, backgroundColor: d.map(v => v >= 0 ? css("--coral") : css("--teal")), borderRadius: 5 }] }, options: { indexAxis: "y", plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: st.v === "c" ? "Push on the log-odds of readmission (positive = toward readmitted)" : "Distance from the average stay (standard deviations, + above, - below)" } } } } });
     },
     caption: st => st.v === "r" ? "Each corner is a variable. The farther the coral shape reaches, the higher this patient is compared with other stays. The dashed teal ring is the typical stay." : st.v === "c" ? "Coral bars push this patient's prediction toward readmitted and teal bars push it away. The bars add up (with the intercept) to the logistic regression's score. Notice how small each push is." : "This shows how unusual each value is compared with the average stay in our data, measured in standard deviations."
   }));
@@ -801,7 +831,7 @@ PAGES.try = () => {
       const f = st.v, j = FEATS.indexOf(f), [lo, hi] = CFG[f], base = get(), step = Math.max(1, Math.round((hi - lo) / 40)), xs = []; for (let v = lo; v <= hi; v += step) xs.push(v);
       const ds = MODELS.map((m, i) => ({ label: m, data: xs.map(v => { const x = base.slice(); x[j] = v; return predict(m, x) * 100; }), borderColor: MC(i), backgroundColor: MC(i) + "22", fill: st.t === "area", pointRadius: 0, tension: .2 }));
       ds.push({ label: `Threshold ${S.thr.toFixed(2)}`, data: xs.map(() => S.thr * 100), borderColor: css("--ink"), borderDash: [5, 4], pointRadius: 0, borderWidth: 1 });
-      mk(cv, { type: "line", data: { labels: xs, datasets: ds }, options: { scales: { x: { title: { display: true, text: LBL[f] }, ticks: { maxTicksLimit: 14 } }, y: { title: { display: true, text: "Predicted chance of readmission (%)" } } }, plugins: { legend: { labels: { boxWidth: 12, font: { size: 11 } } } } } });
+      mk(cv, { type: "line", data: { labels: xs, datasets: ds }, options: { scales: { x: { title: { display: true, text: axT(f) }, ticks: { maxTicksLimit: 14 } }, y: { title: { display: true, text: "Predicted chance of readmission (%)" } } }, plugins: { legend: { labels: { boxWidth: 12, font: { size: 11 } } } } } });
     },
     caption: "This takes the patient you built above and changes only one variable. Each line is a model's predicted chance of readmission. Where a line crosses the dashed threshold, the prediction flips. The lines are fairly flat, which shows how weak each variable is on its own."
   }));
