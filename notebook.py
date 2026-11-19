@@ -76,7 +76,11 @@ def _(mo):
 
     **Steps in this notebook:** 1 load the data, 2 pick variables, 3 split, 4 train three
     models, 5 evaluate each one, 6 classify a new patient, 7 compare the models,
-    8 choose a threshold, 9 conclusion.
+    8 choose a threshold, 9 check subgroups and look at single patients, 10 conclusion.
+
+    The web app has the same analysis as an interactive dashboard, including an
+    **Interactive explorer** tab where every chart is linked. Section 9 of this notebook is
+    the notebook version of that explorer.
     """)
     return
 
@@ -556,7 +560,123 @@ def _(metrics_at, mo, probs, thr, y_test):
 @app.cell
 def _(mo):
     mo.md(r"""
-    ## 9. Conclusion
+    ## 9. Do the models work better for some patients?
+    The app's **Interactive explorer** lets you filter the test patients and see every chart
+    update. Here is the same idea in the notebook. Use the sliders to keep only patients in a
+    range of diagnoses and days in the hospital, then see how each model does for that group
+    at the threshold from section 8. Then pick a single test patient below to see what each
+    model predicted for them.
+    """)
+    return
+
+
+@app.cell
+def _(mo):
+    # Why: these widgets are the "filter" step. They let anyone in the group choose a subgroup
+    # of the test patients without editing code. The diagnoses and days ranges match the
+    # ranges in the data.
+    f_diag = mo.ui.range_slider(1, 16, value=[1, 16], step=1, label="Diagnoses (count)", show_value=True)
+    f_days = mo.ui.range_slider(1, 14, value=[1, 14], step=1, label="Days in hospital (days)", show_value=True)
+    mo.hstack([f_diag, f_days], justify="start")
+    return f_days, f_diag
+
+
+@app.cell
+def _(
+    X_test, confusion_matrix, f_days, f_diag, mo, np, pd, probs, roc_auc_score, thr, y_test,
+):
+    # Why: this recomputes every model's results for only the filtered patients. We use a safe
+    # version of the metrics because a small subgroup might have only one outcome, which would
+    # make sensitivity or AUROC undefined. A subgroup needs at least 15 patients and both
+    # outcomes before we report an AUROC. The table compares each model on the subgroup with
+    # its AUROC on all 750 patients, the same comparison the app's explorer shows.
+    _mask = (
+        X_test["number_diagnoses"].between(*f_diag.value)
+        & X_test["time_in_hospital"].between(*f_days.value)
+    ).to_numpy()
+    _y = y_test.to_numpy()[_mask]
+    _rows = {}
+    for _name, _p in probs.items():
+        _ps = _p[_mask]
+        _tn, _fp, _fn, _tp = confusion_matrix(_y, (_ps >= thr.value).astype(int), labels=[0, 1]).ravel()
+        _ok = len(_y) >= 15 and 0 < _y.sum() < len(_y)
+        _rows[_name] = {
+            "patients": int(_mask.sum()),
+            "readmitted rate": _y.mean() if len(_y) else np.nan,
+            "accuracy": (_tp + _tn) / len(_y) if len(_y) else np.nan,
+            "sensitivity": _tp / (_tp + _fn) if (_tp + _fn) else np.nan,
+            "specificity": _tn / (_tn + _fp) if (_tn + _fp) else np.nan,
+            "AUROC (this group)": roc_auc_score(_y, _ps) if _ok else np.nan,
+            "AUROC (all patients)": roc_auc_score(y_test, _p),
+        }
+    mo.vstack([
+        mo.md(f"**{int(_mask.sum())} of {len(_mask)} test patients** are shown "
+              f"(threshold {thr.value:.2f}, from the slider in section 8)."),
+        pd.DataFrame(_rows).T.round(3),
+    ])
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    ### Look at one test patient
+    Pick a patient number. The table shows that patient's values, whether they were really
+    readmitted, and what each model predicted. The bar chart shows how much each variable
+    pushed the logistic regression's score up or down.
+    """)
+    return
+
+
+@app.cell
+def _(mo):
+    # Why: a slider to choose which of the 750 test patients to inspect.
+    patient_no = mo.ui.slider(1, 750, value=18, label="Test patient number", show_value=True)
+    patient_no
+    return (patient_no,)
+
+
+@app.cell
+def _(X_test, mo, models, np, patient_no, pd, plt, probs, thr, y_test):
+    # Why: this is the patient view. It shows the patient's values, the real outcome, and each
+    # model's predicted probability and yes/no decision at the chosen threshold, marking each
+    # as correct or wrong. For the logistic regression we also split the score into one push
+    # per variable (coefficient times the standardized value) so the prediction can be
+    # explained. Positive pushes move toward readmitted.
+    _k = patient_no.value - 1
+    _row = X_test.iloc[[_k]]
+    _actual = int(y_test.iloc[_k])
+    _lines = []
+    for _name in models:
+        _q = float(probs[_name][_k])
+        _flag = _q >= thr.value
+        _ok = _flag == bool(_actual)
+        _lines.append(f"| {_name} | {_q:.0%} | {'Flagged' if _flag else 'Not flagged'} | {'Correct' if _ok else 'Wrong'} |")
+    _pipe = models["Logistic regression"]
+    _scaler, _lr = _pipe[0], _pipe[-1]
+    _push = _lr.coef_[0] * _scaler.transform(_row)[0]
+    _fig, _ax = plt.subplots(figsize=(7, 3))
+    _labels = ["Days in hospital", "Lab tests", "Procedures", "Medications", "Diagnoses", "Diabetes med"]
+    _ax.barh(_labels, _push, color=["#a5303c" if v >= 0 else "#2b7a8c" for v in _push])
+    _ax.axvline(0, color="k", lw=1)
+    _ax.set_xlabel("Push on the log-odds of readmission (positive = toward readmitted)")
+    _ax.set_ylabel("Variable")
+    _ax.set_title(f"Why the logistic regression scored test patient {patient_no.value} this way")
+    _fig.tight_layout()
+    mo.vstack([
+        mo.md(f"**Test patient {patient_no.value}: actually {'readmitted' if _actual else 'not readmitted'}** "
+              f"(threshold {thr.value:.2f})\n\n"
+              "| Model | Predicted chance of readmission | At the threshold | Result |\n|---|---|---|---|\n" + "\n".join(_lines)),
+        _row.reset_index(drop=True),
+        _fig,
+    ])
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    ## 10. Conclusion
     **Answer to the research question:** these variables do not predict readmission very
     accurately. The best model, the random forest, reached an AUROC of about 0.59 and 61%
     accuracy at a threshold of 0.5, while always guessing not readmitted gives 60%. The
@@ -571,7 +691,8 @@ def _(mo):
     range), no tuning of the models, and data from 1999 to 2008.
 
     The web app on GitHub Pages (link at the top of this notebook and in the README) has the
-    interactive version with many more charts.
+    interactive version with many more charts, including the linked Interactive explorer that
+    section 9 mirrors.
     """)
     return
 

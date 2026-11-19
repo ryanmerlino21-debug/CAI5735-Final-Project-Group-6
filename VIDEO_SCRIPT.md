@@ -2,7 +2,7 @@
 
 CAI5735 Final Project, Group 6 · about 5 minutes total
 
-Each person records their own part (screen and voice), about 1 minute 40 seconds each. Then the three clips are put together in order: Ryan, April, Nikolas.
+Each person records their own part (screen and voice), about 1 to 2 minutes each. Then the three clips are put together in order: Ryan, April, Nikolas.
 
 App: https://ryanmerlino21-debug.github.io/CAI5735-Final-Project-Group-6/
 
@@ -10,7 +10,7 @@ App: https://ryanmerlino21-debug.github.io/CAI5735-Final-Project-Group-6/
 
 ## Part 1: Ryan
 
-**Introduction and dataset** (about 1:40)
+**Introduction and dataset** (about 1:15)
 
 *Start on the Research question tab (it is the first page). Scroll slowly down to the box titled "Research question".*
 
@@ -44,21 +44,11 @@ Now April will show how we analyzed the data.
 
 ## Part 2: April
 
-**Analysis: exploring, models and threshold** (about 1:50)
-
-*Click "Explore" in the left menu. In the first chart ("Distribution"), open the "Variable" dropdown and pick "Diagnoses".*
-
-Hi, I'm April Walter. I'll walk through our analysis.
-
-On the Explore tab you can look at every variable. Each chart has buttons to change how it is drawn.
-
-*Click "Bars", then "Box plot", then "Cumulative". Point at the teal and coral shapes.*
-
-Here are the diagnoses for readmitted and not readmitted patients. The two groups look almost the same. That is an early sign this will be hard to predict.
+**Models, threshold and the interactive explorer** (about 2:10)
 
 *Click "Analysis: Models" in the left menu. Point at the three model boxes under "The three models".*
 
-Next is the Models tab. We split the data into 75 percent for training and 25 percent for testing. Then we trained three models: logistic regression, a decision tree, and a random forest.
+Hi, I'm April Walter. I'll walk through our analysis. We split the data into 75 percent for training and 25 percent for testing. Then we trained three models: logistic regression, a decision tree, and a random forest.
 
 *Scroll to the "Confusion matrix" chart. Click "Counts", then "All 3 models".*
 
@@ -78,27 +68,29 @@ The Threshold tab shows how the cutoff changes the results. At 0.50 the random f
 
 *Click the "Our choice 0.40" button and point at the "In plain terms" box again.*
 
-At 0.40 it catches about 66 percent, but it also flags more patients who did not come back.
+At 0.40 it catches about 66 percent, but it also flags more patients who did not come back. We chose 0.40 because missing a patient who comes back is worse than making an extra follow up call.
 
-*Scroll to the "Metrics at every threshold" chart and point at the dashed line.*
+*Click "Interactive explorer" in the left menu. In the box "1. Filter the patients", click the two tallest bars on the right side under "Diagnoses (count per stay)". Point at the numbers across the top.*
 
-We chose 0.40 because missing a patient who comes back is worse than making an extra follow up call.
+Our last tab is the Interactive explorer, where every chart is linked. Here I keep only patients with many diagnoses, and every chart updates to just those patients.
 
-Now Nikolas will classify a new patient and share our results.
+*In "3. ROC curve", click a point in the middle of the curve. Point at the confusion matrix.*
+
+If I click the ROC curve, it sets the threshold, and the confusion matrix and the numbers change too. Now Nikolas will pick a patient and share our results.
 
 ---
 
 ## Part 3: Nikolas
 
-**Classifying a patient and results** (about 1:40)
+**A single patient and results** (about 1:30)
 
-*Click "Try a patient" in the left menu. Point at the sliders.*
+*Click "Interactive explorer" in the left menu. Click "Reset everything". Scroll to "5. Every test patient" and click any dot. Scroll to "6. The selected patient" and point at the three prediction boxes.*
 
-Hi, I'm Nikolas Platon. On the Try a patient tab you can classify a new patient. You set the days in the hospital, lab tests, procedures, medications, diagnoses, and whether they were prescribed a diabetes medication.
+Hi, I'm Nikolas Platon. In the explorer I can click any dot to pick a real test patient. Here is each model's predicted chance of readmission for this patient, and whether it was right.
 
-*Click the "Long, complex stay" preset button. Point at the three prediction boxes (one for each model).*
+*Click the "Open in Try a patient" button. Point at the sliders and the three prediction boxes.*
 
-Here I'll pick a long, complex stay. Each model gives a predicted chance of readmission and tells us if it is above our threshold.
+This sends the patient to the Try a patient tab, where I can change the days, lab tests, procedures, medications and diagnoses myself.
 
 *Scroll to the "What if?" chart. Open the "Vary" dropdown and pick "Diagnoses".*
 
