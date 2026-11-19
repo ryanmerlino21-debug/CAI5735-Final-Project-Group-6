@@ -9,7 +9,9 @@ const LBL = { time_in_hospital: "Days in hospital", num_lab_procedures: "Lab tes
 const UNITS = { time_in_hospital: "Days in hospital (days)", num_lab_procedures: "Lab tests (count per stay)", num_procedures: "Procedures (count per stay)", num_medications: "Medications (count per stay)", number_diagnoses: "Diagnoses (count per stay)", diabetes_med: "Diabetes medication (0 = no, 1 = yes)" };
 const axT = f => UNITS[f] || LBL[f];
 const METRIC_T = { auc: "AUROC (0.5 = coin flip, 1 = perfect)", acc: "Accuracy (share of predictions correct, 0 to 1)", sens: "Sensitivity (share of readmissions caught, 0 to 1)", spec: "Specificity (share of non-readmissions cleared, 0 to 1)", prec: "Precision (share of flagged who returned, 0 to 1)", f1: "F1 score (0 to 1)", j: "Youden's J (sensitivity + specificity - 1)", flag: "Share of patients flagged (0 to 1)" };
-let CUR_AXES = null;
+let CUR_AXES = null, TRY_SET = null;
+const clampT = t => Math.min(0.7, Math.max(0.1, +(+t).toFixed(2)));
+function setThr(t) { S.thr = clampT(t); setTimeout(syncSettings, 0); } // deferred so a chart is not destroyed inside its own click handler
 const MODELS = ["Logistic regression", "Decision tree", "Random forest"];
 const MC = i => [css("--teal"), css("--coral"), css("--violet")][i];
 const S = { tab: "overview", model: "Random forest", thr: 0.40 };
@@ -30,11 +32,11 @@ function confusion(p, y, t) {
 }
 function curves(p, y) {
   const idx = p.map((_, i) => i).sort((a, b) => p[b] - p[a]), P = sum(y), N = y.length - P;
-  let tp = 0, fp = 0, auc = 0, prev = { x: 0, y: 0 }; const roc = [{ x: 0, y: 0 }], pr = []; let ap = 0, prevR = 0;
+  let tp = 0, fp = 0, auc = 0, prev = { x: 0, y: 0 }; const roc = [{ x: 0, y: 0, t: 1 }], pr = []; let ap = 0, prevR = 0;
   for (let k = 0; k < idx.length; k++) {
     if (y[idx[k]]) tp++; else fp++;
     if (k === idx.length - 1 || p[idx[k + 1]] !== p[idx[k]]) {
-      const pt = { x: fp / N, y: tp / P }; auc += (pt.x - prev.x) * (pt.y + prev.y) / 2; roc.push(pt); prev = pt;
+      const pt = { x: fp / N, y: tp / P, t: p[idx[k]] }; auc += (pt.x - prev.x) * (pt.y + prev.y) / 2; roc.push(pt); prev = pt;
       const prec = tp / (tp + fp); pr.push({ x: tp / P, y: prec }); ap += (tp / P - prevR) * prec; prevR = tp / P;
     }
   }
@@ -77,7 +79,14 @@ function card({ title, toggles = [], height = 300, kind = "canvas", caption = ""
     st[t.key] = t.value;
     if (t.type === "select") {
       const lab = h(`<label>${t.label}<select>${t.options.map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select></label>`);
-      const sel = $("select", lab); sel.value = t.value; sel.onchange = () => { st[t.key] = sel.value; el.redraw(); }; tg.append(lab);
+      const sel = $("select", lab); sel.value = t.value;
+      sel.onchange = () => {
+        st[t.key] = sel.value;
+        if (t.sync) (REG[S.tab] || []).forEach(o => { if (o !== el && o.syncSel && o.syncSel[t.sync]) { o.syncSel[t.sync](sel.value); } });
+        el.redraw();
+      };
+      if (t.sync) { el.syncSel = el.syncSel || {}; el.syncSel[t.sync] = v => { sel.value = v; st[t.key] = v; el.redraw(); }; }
+      tg.append(lab);
     } else if (t.type === "range") {
       const lab = h(`<label>${t.label} <input type="range" min="${t.min}" max="${t.max}" step="${t.step}" value="${t.value}"><b class="mono">${t.value}</b></label>`);
       const r = $("input", lab); r.oninput = () => { st[t.key] = +r.value; $("b", lab).textContent = r.value; el.redraw(); }; tg.append(lab);
@@ -320,6 +329,7 @@ PAGES.overview = () => {
     <div>We asked whether a few numbers recorded during a hospital stay can predict if a patient with diabetes comes back to the hospital. This app walks through how we answered that.</div>
     <ol>
       <li><a href="#dataset" data-go>Dataset</a>: where the data came from and what each column means.</li>
+      <li><a href="#explorer" data-go>Interactive explorer</a>: one linked dashboard. Filter patients, move the threshold and pick a patient, and every chart updates together.</li>
       <li><a href="#explore" data-go>Explore</a>: charts to look at each variable and how it relates to readmission.</li>
       <li><a href="#models" data-go>Models</a>: the three classification models, with confusion matrices, ROC curves and more.</li>
       <li><a href="#threshold" data-go>Threshold</a>: how the cutoff changes what the model catches and misses.</li>
@@ -450,7 +460,7 @@ PAGES.explore = () => {
     lede("If a variable predicted readmission well, the readmitted and not readmitted shapes would look different."),
     card({
       title: "Distribution", height: 330, kind: "both",
-      toggles: [{ key: "v", label: "Variable", type: "select", value: "num_medications", options: VAR_OPTS },
+      toggles: [{ key: "v", label: "Variable", type: "select", value: "number_diagnoses", sync: "var", options: VAR_OPTS },
         { key: "view", label: "Show as", value: "bar", options: [["bar", "Bars"], ["line", "Smoothed line"], ["cdf", "Cumulative"], ["box", "Box plot"]] },
         { key: "scale", label: "Scale", value: "pct", options: [["pct", "% of group"], ["n", "Count"]] },
         { key: "grp", label: "Groups", value: "split", options: [["split", "Split"], ["all", "All stays"]] }],
@@ -479,7 +489,7 @@ PAGES.explore = () => {
     lede("This flips the view. For each value or range of a variable, it shows how often those patients were readmitted."),
     card({
       title: "Readmission rate by value", height: 330, kind: "both",
-      toggles: [{ key: "v", label: "Variable", type: "select", value: "number_diagnoses", options: VAR_OPTS },
+      toggles: [{ key: "v", label: "Variable", type: "select", value: "number_diagnoses", sync: "var", options: VAR_OPTS },
         { key: "t", label: "Show as", value: "bar", options: [["bar", "Bars"], ["line", "Line"], ["area", "Area"], ["strip", "Heat strip"], ["combo", "Count + rate"], ["stack", "Stacked share"]] },
         { key: "d", label: "Detail", value: "fine", options: [["fine", "Each value"], ["coarse", "5 groups"]] }],
       draw(st, cv, el) {
@@ -646,9 +656,10 @@ PAGES.models = () => {
       else if (key === "gain") { ds = list.map(({ m, i }) => ({ label: m, data: gain(m), ...sty(m, i) })); ds.push({ label: "Random order", data: [{ x: 0, y: 0 }, { x: 1, y: 1 }], showLine: true, pointRadius: 0, borderDash: [5, 5], borderColor: css("--muted"), borderWidth: 1 }); xt = "Share of patients called, highest risk first (0 to 1)"; yt = "Share of all readmissions reached (0 to 1)"; }
       else if (key === "lift") { ds = list.map(({ m, i }) => ({ label: m, data: gain(m).filter(p => p.x > .04).map(p => ({ x: p.x, y: p.y / p.x })), ...sty(m, i) })); ds.push({ label: "Random order (1.0)", data: [{ x: .05, y: 1 }, { x: 1, y: 1 }], showLine: true, pointRadius: 0, borderDash: [5, 5], borderColor: css("--muted"), borderWidth: 1 }); xt = "Share of patients called, highest risk first (0 to 1)"; yt = "Lift (times better than random calling)"; yr = [.6, 2]; }
       else { ds = list.map(({ m, i }) => ({ label: m, data: cal(m), ...sty(m, i), pointRadius: 4 })); ds.push({ label: "Perfectly calibrated", data: [{ x: 0, y: 0 }, { x: 1, y: 1 }], showLine: true, pointRadius: 0, borderDash: [5, 5], borderColor: css("--muted"), borderWidth: 1 }); xt = "Predicted probability of readmission (0 to 1)"; yt = "Actual share readmitted (0 to 1)"; xr = [.1, .8]; yr = [.1, .8]; }
-      mk(cv, { type, data: { datasets: ds }, options: { scales: { x: { min: xr[0], max: xr[1], title: { display: true, text: xt } }, y: { min: yr[0], max: yr[1], title: { display: true, text: yt } } }, plugins: { legend: { labels: { boxWidth: 10, font: { size: 10 } } } } } });
+      const clickRoc = key !== "roc" ? undefined : (e, _, ch) => { const x = ch.scales.x.getValueForPixel(e.x), y = ch.scales.y.getValueForPixel(e.y); let best = null, bd = 1e9; ROC[S.model].roc.forEach(pt => { const d = (pt.x - x) ** 2 + (pt.y - y) ** 2; if (d < bd) { bd = d; best = pt; } }); if (best && best.t <= 1) setThr(best.t); };
+      mk(cv, { type, data: { datasets: ds }, options: { onClick: clickRoc, onHover: (e, a, ch) => { ch.canvas.style.cursor = key === "roc" ? "pointer" : "default"; }, scales: { x: { min: xr[0], max: xr[1], title: { display: true, text: xt } }, y: { min: yr[0], max: yr[1], title: { display: true, text: yt } } }, plugins: { legend: { labels: { boxWidth: 10, font: { size: 10 } } } } } });
     },
-    caption: st => ({ roc: "A curve that bows toward the top left is better, and the dashed diagonal is a coin flip. Ours hug the diagonal. The black dot is where the current threshold sits on the selected model.", pr: "Precision is how often a flagged patient really comes back. The dashed line is what you would get by flagging everyone. Our curves stay close to it.", gain: "If we called patients from highest to lowest predicted risk, this shows what share of all readmissions we would reach. The dashed line is calling patients in random order. Higher above it is better.", lift: "Lift is how many times more readmissions we find than random calling would at the same number of calls. A lift of 1.0 means no better than random.", cal: "Each point is a tenth of the patients grouped by predicted risk. If a model were well calibrated, the points would follow the dashed line. Ours are squeezed into a narrow range because the models are not confident." })[st.c]
+    caption: st => ({ roc: "A curve that bows toward the top left is better, and the dashed diagonal is a coin flip. Ours hug the diagonal. The black dot is where the current threshold sits on the selected model. Click anywhere near the curve to move the threshold to that point: every chart in the app updates.", pr: "Precision is how often a flagged patient really comes back. The dashed line is what you would get by flagging everyone. Our curves stay close to it.", gain: "If we called patients from highest to lowest predicted risk, this shows what share of all readmissions we would reach. The dashed line is calling patients in random order. Higher above it is better.", lift: "Lift is how many times more readmissions we find than random calling would at the same number of calls. A lift of 1.0 means no better than random.", cal: "Each point is a tenth of the patients grouped by predicted risk. If a model were well calibrated, the points would follow the dashed line. Ours are squeezed into a narrow range because the models are not confident." })[st.c]
   }));
     p.append(section("How the predictions are spread",
     card({
@@ -662,9 +673,9 @@ PAGES.models = () => {
         if (st.st === "line") { const sm = x => x.map((_, i) => mean(x.slice(Math.max(0, i - 1), i + 2))); a = sm(a); b = sm(b); }
         if (st.st === "cdf") { let t = 0, u = 0; a = a.map(v => (t += v)); b = b.map(v => (u += v)); }
         const bar = st.st === "bar", mkd = (label, d, col) => bar ? { label, data: d, backgroundColor: col + "aa", borderRadius: 3 } : { label, data: d, borderColor: col, backgroundColor: col + "33", fill: st.st === "line", pointRadius: 0, tension: .3 };
-        mk(cv, { type: bar ? "bar" : "line", data: { labels: lab, datasets: [mkd("Not readmitted", a, css("--teal")), mkd("Readmitted", b, css("--coral"))] }, options: { scales: { x: { title: { display: true, text: "Predicted probability of readmission (0 to 1)" }, grid: { display: false }, ticks: { maxTicksLimit: 10 } }, y: { title: { display: true, text: st.st === "cdf" ? "Cumulative share of group (%)" : "Share of group (% of test stays)" } } } } });
+        mk(cv, { type: bar ? "bar" : "line", data: { labels: lab, datasets: [mkd("Not readmitted", a, css("--teal")), mkd("Readmitted", b, css("--coral"))] }, options: { onClick: (e, _, ch) => { const ca = ch.chartArea; if (e.x < ca.left || e.x > ca.right) return; setThr(lo + (e.x - ca.left) / (ca.right - ca.left) * nb * w); }, onHover: (e, a, ch) => { ch.canvas.style.cursor = "pointer"; }, scales: { x: { title: { display: true, text: "Predicted probability of readmission (0 to 1)" }, grid: { display: false }, ticks: { maxTicksLimit: 10 } }, y: { title: { display: true, text: st.st === "cdf" ? "Cumulative share of group (%)" : "Share of group (% of test stays)" } } } } });
       },
-      caption: st => st.st === "cdf" ? "Each line shows the share of a group with a predicted probability at or below that value. A model that separates the groups well would have the lines far apart. Ours are nearly on top of each other." : "A good model pushes the teal shape to the left and the coral shape to the right. Ours overlap almost completely, which is why no threshold can separate the groups well."
+      caption: st => st.st === "cdf" ? "Each line shows the share of a group with a predicted probability at or below that value. A model that separates the groups well would have the lines far apart. Ours are nearly on top of each other." : "A good model pushes the teal shape to the left and the coral shape to the right. Ours overlap almost completely, which is why no threshold can separate the groups well. Click anywhere on the chart to set the threshold at that probability."
     })));
     p.append(section("Comparing the models", cmpCard(),
     card({
@@ -752,10 +763,10 @@ PAGES.threshold = () => {
         else if (st.m === "ss") ds = MODELS.flatMap((m, i) => [line(m, "sens", MC(i), m + " sens."), line(m, "spec", MC(i), m + " spec.", [5, 4])]);
         else ds = (st.s === "sel" ? [S.model] : MODELS).map(m => line(m, st.m, MC(MODELS.indexOf(m)), m));
         const mi = ts.indexOf(+S.thr.toFixed(2));
-        mk(cv, { type: "line", data: { labels: ts.map(t => t.toFixed(2)), datasets: ds }, options: { scales: { x: { title: { display: true, text: "Threshold (predicted probability, 0 to 1)" }, ticks: { maxTicksLimit: 13 } }, y: { min: st.m === "j" ? -.1 : 0, max: st.m === "j" ? .3 : 1 } }, plugins: { legend: { labels: { boxWidth: 12, font: { size: 11 } } } } },
+        mk(cv, { type: "line", data: { labels: ts.map(t => t.toFixed(2)), datasets: ds }, options: { onClick: (e, _, ch) => { const ca = ch.chartArea; if (e.x < ca.left || e.x > ca.right) return; setThr(0.1 + (e.x - ca.left) / (ca.right - ca.left) * 0.6); }, onHover: (e, a, ch) => { ch.canvas.style.cursor = "pointer"; }, scales: { x: { title: { display: true, text: "Threshold (predicted probability, 0 to 1)" }, ticks: { maxTicksLimit: 13 } }, y: { min: st.m === "j" ? -.1 : 0, max: st.m === "j" ? .3 : 1 } }, plugins: { legend: { labels: { boxWidth: 12, font: { size: 11 } } } } },
           plugins: [{ id: "cur", afterDraw(ch) { const x = ch.scales.x.getPixelForValue(mi), { top, bottom } = ch.chartArea, c = ch.ctx; c.save(); c.strokeStyle = css("--ink"); c.setLineDash([4, 4]); c.beginPath(); c.moveTo(x, top); c.lineTo(x, bottom); c.stroke(); c.restore(); } }] });
       },
-      caption: st => st.t === "stack" ? "At each threshold, the 100% height is split into the four outcomes for the selected model. Moving right, the coral missed readmissions grow and the yellow false alarms shrink." : st.t === "heat" ? "Each cell is one metric value for a model at a threshold. Darker violet means a higher value in this table. Pick a metric above to compare how each model behaves as the threshold moves." : "The dashed vertical line is the current threshold. Moving right means fewer patients get flagged: specificity rises and sensitivity falls. Try Youden's J to see where the balance peaks, and Share flagged to see how many patients get called."
+      caption: st => st.t === "stack" ? "At each threshold, the 100% height is split into the four outcomes for the selected model. Moving right, the coral missed readmissions grow and the yellow false alarms shrink." : st.t === "heat" ? "Each cell is one metric value for a model at a threshold. Darker violet means a higher value in this table. Pick a metric above to compare how each model behaves as the threshold moves." : "The dashed vertical line is the current threshold, and you can click anywhere on the chart to move it. Moving right means fewer patients get flagged: specificity rises and sensitivity falls. Try Youden's J to see where the balance peaks, and Share flagged to see how many patients get called."
     })));
   p.append(section("Choosing a threshold by cost",
     lede("Missing a patient who comes back is probably worse than making an extra follow up call. This lets you say how much worse."),
@@ -800,7 +811,7 @@ PAGES.try = () => {
     <div class="sliders">${Object.entries(CFG).map(([f, [a, b]]) => `<label>${LBL[f]}: <output id="o_${f}"></output><input type="range" id="s_${f}" min="${a}" max="${b}"></label>`).join("")}</div>
     <label style="display:block;margin-top:14px"><input type="checkbox" id="s_dm"> Prescribed a diabetes medication</label></div>`);
   const setP = v => { FEATS.forEach((f, i) => { if (f === "diabetes_med") $("#s_dm", form).checked = !!v[i]; else $("#s_" + f, form).value = v[i]; }); upd(); };
-  PATIENT = () => get();
+  PATIENT = () => get(); TRY_SET = v => setP(v);
   const get = () => FEATS.map(f => f === "diabetes_med" ? ($("#s_dm", form).checked ? 1 : 0) : +$("#s_" + f, form).value);
   const upd = () => { Object.keys(CFG).forEach(f => $("#o_" + f, form).textContent = $("#s_" + f, form).value); refresh(); };
   form.oninput = upd; form.onclick = e => { const b = e.target.closest("[data-p]"); if (b) setP(presets[b.dataset.p]); };
@@ -924,7 +935,7 @@ PAGES.glossary = () => {
 };
 
 /* ================= shell: tabs, routing, display menu ================= */
-const TABS = [["overview", "Research question", "🏠"], ["dataset", "Dataset", "📋"], ["explore", "Explore", "🔍"], ["models", "Analysis: Models", "🧠"], ["threshold", "Analysis: Threshold", "🎚️"], ["try", "Try a patient", "🧪"], ["results", "Results", "🏁"], ["glossary", "Glossary", "📖"]];
+const TABS = [["overview", "Research question", "🏠"], ["dataset", "Dataset", "📋"], ["explorer", "Interactive explorer", "🧭"], ["explore", "Explore", "🔍"], ["models", "Analysis: Models", "🧠"], ["threshold", "Analysis: Threshold", "🎚️"], ["try", "Try a patient", "🧪"], ["results", "Results", "🏁"], ["glossary", "Glossary", "📖"]];
 function addChips(page) {
   const hs = $$("section.block > h3", page); if (hs.length < 3) return;
   hs.forEach((x, i) => x.id = x.id || `${S.tab}-${i}`);

@@ -51,6 +51,7 @@ out = {
     "importance": {"Decision tree": [round(float(v), 5) for v in tree.feature_importances_],
                    "Random forest": [round(float(v), 5) for v in rf.feature_importances_]},
     "tree_text": export_text(tree, feature_names=list(X.columns), decimals=1),
+    "test_idx": [int(i) for i in X_test.index],
     "n_train": len(X_train), "n_test": len(X_test),
 }
 with open("docs/data.json", "w") as f:
