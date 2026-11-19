@@ -12,19 +12,31 @@ App: https://ryanmerlino21-debug.github.io/CAI5735-Final-Project-Group-6/
 
 **Introduction and dataset** (about 1:40)
 
-*Show: the Research question tab.*
+*Start on the Research question tab (it is the first page). Scroll slowly down to the box titled "Research question".*
 
 Hi everyone. I'm Ryan Merlino. This is our CAI5735 final project from Group 6. My group members are April Walter and Nikolas Platon, and each of us will walk through one part.
 
 Our research question is: how accurately can a patient's length of stay, number of lab tests, procedures, medications and diagnoses, plus whether they were prescribed a diabetes medication, predict whether they will be readmitted to the hospital?
 
+*Scroll down to "What problem are we trying to solve?".*
+
 We chose this question because readmissions are hard on patients and costly for hospitals. If we could flag high risk patients before they go home, staff could call those patients first.
 
-*Show: the Dataset tab.*
+*Click "Dataset" in the left menu. Point at the "Data at a glance" boxes at the top (3,000 rows).*
 
 We used the Diabetes 130 US Hospitals dataset from the UCI Machine Learning Repository. Our copy has 3,000 hospital stays.
 
-This table lists the columns we used. What we want to predict is whether the patient was readmitted. About 40 percent of the stays were. You can also browse real rows in the data preview.
+*Scroll to "Columns we used" and move your mouse down the table.*
+
+This table lists the columns we used. What we want to predict is whether the patient was readmitted.
+
+*Scroll to "Setting up the outcome". On the "Outcome groups" chart, click "Original 3", then "Our 2", then "100 patients".*
+
+About 40 percent of the stays were readmitted.
+
+*Scroll to "Browse the data" and click the "Shuffle" button once.*
+
+You can also browse real rows in the data preview.
 
 Now April will show how we analyzed the data.
 
@@ -34,21 +46,41 @@ Now April will show how we analyzed the data.
 
 **Analysis: exploring, models and threshold** (about 1:50)
 
-*Show: the Explore tab. Pick "Number of diagnoses" and switch the chart type.*
+*Click "Explore" in the left menu. In the first chart ("Distribution"), open the "Variable" dropdown and pick "Diagnoses".*
 
 Hi, I'm April Walter. I'll walk through our analysis.
 
-On the Explore tab you can look at every variable. Each chart has buttons to change how it is drawn. For example, here are the diagnoses for readmitted and not readmitted patients. The two groups look almost the same. That is an early sign this will be hard to predict.
+On the Explore tab you can look at every variable. Each chart has buttons to change how it is drawn.
 
-*Show: the Analysis: Models tab. Point at the confusion matrix and the ROC curve.*
+*Click "Bars", then "Box plot", then "Cumulative". Point at the teal and coral shapes.*
+
+Here are the diagnoses for readmitted and not readmitted patients. The two groups look almost the same. That is an early sign this will be hard to predict.
+
+*Click "Analysis: Models" in the left menu. Point at the three model boxes under "The three models".*
 
 Next is the Models tab. We split the data into 75 percent for training and 25 percent for testing. Then we trained three models: logistic regression, a decision tree, and a random forest.
 
-For each model the app shows a confusion matrix, accuracy, sensitivity, specificity, and the ROC curve with the AUROC. All three AUROC values are about 0.59. A coin flip would be 0.50. The random forest scored highest, so we chose it, but the three models are very close.
+*Scroll to the "Confusion matrix" chart. Click "Counts", then "All 3 models".*
 
-*Show: the Analysis: Threshold tab. Drag the slider from 0.50 to 0.40.*
+For each model the app shows a confusion matrix.
 
-The Threshold tab shows how the cutoff changes the results. At 0.50 the random forest only catches about 21 percent of readmissions. At 0.40 it catches about 66 percent, but it also flags more patients who did not come back.
+*Scroll to the "Performance curve" chart on the right. Leave it on "ROC" and "All three". Point at the legend with the AUROC numbers.*
+
+It also shows the ROC curve with the AUROC. All three AUROC values are about 0.59. A coin flip would be 0.50.
+
+*Scroll to "Comparison table" and point at the accuracy, sensitivity, specificity and AUROC columns.*
+
+The random forest scored highest, so we chose it, but the three models are very close.
+
+*Click "Analysis: Threshold" in the left menu. At the top, make sure the Model box says "Random forest". Click the "Default 0.50" button and point at the "In plain terms" box.*
+
+The Threshold tab shows how the cutoff changes the results. At 0.50 the random forest only catches about 21 percent of readmissions.
+
+*Click the "Our choice 0.40" button and point at the "In plain terms" box again.*
+
+At 0.40 it catches about 66 percent, but it also flags more patients who did not come back.
+
+*Scroll to the "Metrics at every threshold" chart and point at the dashed line.*
 
 We chose 0.40 because missing a patient who comes back is worse than making an extra follow up call.
 
@@ -60,15 +92,27 @@ Now Nikolas will classify a new patient and share our results.
 
 **Classifying a patient and results** (about 1:40)
 
-*Show: the Try a patient tab. Click a preset such as "Long, complex stay".*
+*Click "Try a patient" in the left menu. Point at the sliders.*
 
 Hi, I'm Nikolas Platon. On the Try a patient tab you can classify a new patient. You set the days in the hospital, lab tests, procedures, medications, diagnoses, and whether they were prescribed a diabetes medication.
 
-Here I'll pick a long, complex stay. Each model gives a predicted chance of readmission and tells us if it is above our threshold. The what-if chart changes one variable at a time. The lines are fairly flat, which shows each variable is weak on its own.
+*Click the "Long, complex stay" preset button. Point at the three prediction boxes (one for each model).*
 
-*Show: the Results tab.*
+Here I'll pick a long, complex stay. Each model gives a predicted chance of readmission and tells us if it is above our threshold.
+
+*Scroll to the "What if?" chart. Open the "Vary" dropdown and pick "Diagnoses".*
+
+The what-if chart changes one variable at a time. The lines are fairly flat, which shows each variable is weak on its own.
+
+*Click "Results" in the left menu. Point at the highlighted "The answer" box and the table below it.*
 
 So what is the answer to our research question? These variables do not predict readmission very accurately. Our best model, the random forest, had an AUROC of about 0.59. Its accuracy at 0.50 was about 61 percent, and always guessing "not readmitted" gets 60 percent.
+
+*Scroll to the "Scoreboard" chart. Leave the metric on "Sensitivity" and point at the two bars for each model.*
+
+At the lower threshold every model catches more readmissions.
+
+*Scroll to "What this means", then "Limitations".*
 
 The number of diagnoses mattered most, but even that did not separate the groups well. Things like prior admissions and lab results such as HbA1c would probably help more, but they are not in this dataset. Our limits are a small sample, one random split, and data from 1999 to 2008.
 
