@@ -479,8 +479,8 @@ def _(mo):
 
     **Our choice: threshold = 0.40.** For the random forest this gives sensitivity of about
     0.66 and specificity of about 0.48 (the highest Youden's J, 0.139). At 0.50 the model
-    would catch only 21% of readmissions. Going lower than 0.35 flags nearly everyone, which
-    makes the model useless for prioritizing follow-up.
+    would catch only 21% of readmissions. Going lower flags more and more patients (about 88% of all
+    patients at 0.30), which makes the model useless for prioritizing follow-up.
     """)
     return
 
@@ -567,7 +567,8 @@ def _(mo):
     rough screening tool and should not be used alone to make decisions about a patient.
 
     **Limitations:** a 3,000 row sample, one random split (the bootstrap shows the AUROC
-    could move by about 0.02 or more), no tuning of the models, and data from 1999 to 2008.
+    could move by about 0.02 from sample to sample, or about plus or minus 0.04 for a 95%
+    range), no tuning of the models, and data from 1999 to 2008.
 
     The web app on GitHub Pages (link at the top of this notebook and in the README) has the
     interactive version with many more charts.

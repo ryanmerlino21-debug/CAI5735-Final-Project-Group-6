@@ -865,7 +865,7 @@ PAGES.results = () => {
     para("The numbers recorded during a stay, like days in the hospital, tests, and medications, are only weakly related to coming back. The number of diagnoses was the variable the models leaned on most, but even that does not separate the two groups well. Things like prior admissions, where the patient goes after discharge, and lab results such as HbA1c would probably help more, but they are not in this simplified file."),
     para("Because of that, the model could only be a rough screening tool, and it should not be used alone to make decisions about a patient.")));
   p.append(section("Limitations",
-    h(`<div class="card"><ul><li>The sample is only 3,000 stays, and we used one random split. The bootstrap on the Models tab shows the AUROC could change by about 0.02 or more with a different split.</li>
+    h(`<div class="card"><ul><li>The sample is only 3,000 stays, and we used one random split. The bootstrap on the Models tab shows the AUROC could change by about 0.02 (roughly plus or minus 0.04 for a 95% range) with a different split.</li>
       <li>We did not tune the models, so a different setup might do slightly better.</li>
       <li>The data is from 1999 to 2008, and practice has changed since then.</li>
       <li>We left out age, gender and admission type on purpose. Adding them is a good next step.</li>
