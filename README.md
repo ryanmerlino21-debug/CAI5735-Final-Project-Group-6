@@ -10,6 +10,8 @@
 
 **Interactive app:** https://ryanmerlino21-debug.github.io/CAI5735-Final-Project-Group-6/
 
+**Video script (5 minute presentation):** [VIDEO_SCRIPT.md](VIDEO_SCRIPT.md)
+
 **Marimo notebook (rendered, with outputs):** https://ryanmerlino21-debug.github.io/CAI5735-Final-Project-Group-6/notebook.html
 
 **Notebook source code:** https://github.com/ryanmerlino21-debug/CAI5735-Final-Project-Group-6/blob/main/notebook.py (see "Running the notebook" below to open it in Marimo)
