@@ -70,7 +70,7 @@ The Threshold tab shows how the cutoff changes the results. At 0.50 the random f
 
 At 0.40 it catches about 66 percent, but it also flags more patients who did not come back. We chose 0.40 because missing a patient who comes back is worse than making an extra follow up call.
 
-*Click "Interactive explorer" in the left menu. In the box "Filter the patients", click the two tallest bars on the right side under "Diagnoses (count per stay)". Point at the numbers across the top.*
+*Click "Interactive explorer" in the left menu. In the box "Filter the patients", find the "Diagnoses (count per stay)" chart and click the tall "9-9" bar, then the "8-8" bar next to it. Point at the numbers across the top.*
 
 Our last tab is the Interactive explorer, where every chart is linked. Here I keep only patients with many diagnoses, and every chart updates to just those patients.
 
