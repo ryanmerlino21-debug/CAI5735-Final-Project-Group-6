@@ -347,7 +347,7 @@ PAGES.overview = () => {
     h(`<div class="card" style="border-left:6px solid var(--teal);font-size:1.1rem">How accurately can a diabetes patient's length of stay, number of lab tests, procedures, medications and diagnoses, plus whether they were prescribed a diabetes medication, predict whether they will be readmitted to the hospital?</div>`)));
   p.append(section("What problem are we trying to solve?",
     para("When a patient with diabetes leaves the hospital and then has to come back, it is hard on the patient and it is costly for the hospital. Hospitals in the US are even penalized when too many patients are readmitted. If we could flag high risk patients before they go home, staff could focus follow up calls and medication reviews on those patients first."),
-    para("I chose this question because it is a real problem in healthcare and because the answer is not obvious. Which means that better care could go to the people who need it most, but only if the prediction is good enough to trust. In this project we test how far a few simple numbers from the stay can take us.")));
+    para("We chose this question because it is a real problem in healthcare and because the answer is not obvious. Which means that better care could go to the people who need it most, but only if the prediction is good enough to trust. In this project we test how far a few simple numbers from the stay can take us.")));
   p.append(section("The numbers at a glance", dyn(() => {
     const best = MODELS.reduce((a, b) => ROC[a].auc > ROC[b].auc ? a : b), c = confusion(D.probs[best], D.y_test, 0.5), c4 = confusion(D.probs[best], D.y_test, 0.4);
     const rate = sum(D.readmitted) / D.readmitted.length;
@@ -685,7 +685,7 @@ PAGES.models = () => {
       },
       caption: "This table uses the threshold from the slider at the top, and highlights the selected model."
     }),
-    para("<b>Which model is best?</b> I chose the <b>random forest</b> because it has the highest AUROC and accuracy. The three models are very close though, with an AUROC around 0.59. Logistic regression is also a good choice because it is simpler and easier to explain. At a threshold of 0.5 every model has very low sensitivity because they mostly guess not readmitted. About 60% of stays are not readmitted, so 60% accuracy is the number to beat.")));
+    para("<b>Which model is best?</b> We chose the <b>random forest</b> because it has the highest AUROC and accuracy. The three models are very close though, with an AUROC around 0.59. Logistic regression is also a good choice because it is simpler and easier to explain. At a threshold of 0.5 every model has very low sensitivity because they mostly guess not readmitted. About 60% of stays are not readmitted, so 60% accuracy is the number to beat.")));
   p.append(section("What the models used",
     card({
       title: "Variable importance", height: 320, kind: "canvas",
@@ -795,8 +795,8 @@ PAGES.threshold = () => {
       },
       caption: "The highlighted row matches the slider. Youden's J is sensitivity + specificity - 1, so higher means a better balance."
     }),
-    h(`<div class="callout warn"><h4>Where I would set the threshold</h4>
-      <p>Missing a patient who comes back is worse than making an extra follow up call, so I want higher sensitivity. For the random forest, a threshold of <b>0.40</b> gave the best balance (sensitivity about 0.66 and specificity about 0.48), which is also where Youden's J is highest. At the default 0.50 the model only catches about 21% of readmissions. Going below about 0.35 flags almost every patient, which makes the model useless for deciding who to call first.</p></div>`)));
+    h(`<div class="callout warn"><h4>Where we would set the threshold</h4>
+      <p>Missing a patient who comes back is worse than making an extra follow up call, so we want higher sensitivity. For the random forest, a threshold of <b>0.40</b> gave the best balance (sensitivity about 0.66 and specificity about 0.48), which is also where Youden's J is highest. At the default 0.50 the model only catches about 21% of readmissions. Going below about 0.35 flags almost every patient, which makes the model useless for deciding who to call first.</p></div>`)));
   return p;
 };
 
@@ -856,7 +856,7 @@ PAGES.results = () => {
   p.append(titlebar("Results and conclusion", "Our answer to the research question."));
   p.append(section("The answer",
     h(`<div class="callout warn"><h4>These variables do not predict readmission very accurately.</h4>
-      <p>Our best model, the random forest, reached an AUROC of about 0.59. A score of 0.5 is a coin flip and 1.0 is perfect, so this is only slightly better than guessing. Its accuracy of 61% at a threshold of 0.5 barely beats always guessing not readmitted, which is 60%. When I lowered the threshold to 0.40, the model caught about two thirds of readmissions, but it also flagged about half of the patients who did not come back.</p></div>`),
+      <p>Our best model, the random forest, reached an AUROC of about 0.59. A score of 0.5 is a coin flip and 1.0 is perfect, so this is only slightly better than guessing. Its accuracy of 61% at a threshold of 0.5 barely beats always guessing not readmitted, which is 60%. When we lowered the threshold to 0.40, the model caught about two thirds of readmissions, but it also flagged about half of the patients who did not come back.</p></div>`),
     dyn(() => {
       const rows = MODELS.map(m => { const a = confusion(D.probs[m], D.y_test, 0.5), b = confusion(D.probs[m], D.y_test, 0.4); return `<tr><td>${m}</td><td class="n">${f3(ROC[m].auc)}</td><td class="n">${f3(a.acc)}</td><td class="n">${f3(a.sens)}</td><td class="n">${f3(a.spec)}</td><td class="n">${f3(b.acc)}</td><td class="n">${f3(b.sens)}</td><td class="n">${f3(b.spec)}</td></tr>`; }).join("");
       return `<div class="card scroll"><table><tr><th></th><th class="n">AUROC</th><th class="n">Acc. @0.50</th><th class="n">Sens. @0.50</th><th class="n">Spec. @0.50</th><th class="n">Acc. @0.40</th><th class="n">Sens. @0.40</th><th class="n">Spec. @0.40</th></tr>${rows}</table></div>`;

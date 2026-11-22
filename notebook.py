@@ -66,7 +66,7 @@ def _(mo):
     > medication, predict whether they will be readmitted to the hospital?**
 
     The response is binary: **readmitted** (came back, either within or after 30 days)
-    or **not readmitted**. I chose this because readmissions are hard on patients and
+    or **not readmitted**. We chose this because readmissions are hard on patients and
     hospitals are penalized for avoidable ones. A model that flags high risk patients
     before discharge could help staff plan follow up care.
 
