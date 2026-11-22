@@ -70,11 +70,11 @@ The Threshold tab shows how the cutoff changes the results. At 0.50 the random f
 
 At 0.40 it catches about 66 percent, but it also flags more patients who did not come back. We chose 0.40 because missing a patient who comes back is worse than making an extra follow up call.
 
-*Click "Interactive explorer" in the left menu. In the box "1. Filter the patients", click the two tallest bars on the right side under "Diagnoses (count per stay)". Point at the numbers across the top.*
+*Click "Interactive explorer" in the left menu. In the box "Filter the patients", click the two tallest bars on the right side under "Diagnoses (count per stay)". Point at the numbers across the top.*
 
 Our last tab is the Interactive explorer, where every chart is linked. Here I keep only patients with many diagnoses, and every chart updates to just those patients.
 
-*In "3. ROC curve", click a point in the middle of the curve. Point at the confusion matrix.*
+*In "ROC curve", click a point in the middle of the curve. Point at the confusion matrix just to the left of it.*
 
 If I click the ROC curve, it sets the threshold, and the confusion matrix and the numbers change too. Now Nikolas will pick a patient and share our results.
 
@@ -84,7 +84,7 @@ If I click the ROC curve, it sets the threshold, and the confusion matrix and th
 
 **A single patient and results** (about 1:30)
 
-*Click "Interactive explorer" in the left menu. Click "Reset everything". Scroll to "5. Every test patient" and click any dot. Scroll to "6. The selected patient" and point at the three prediction boxes.*
+*Click "Interactive explorer" in the left menu. Click "Reset everything". Scroll to "Every test patient" and click any dot. Scroll to "The selected patient" and point at the three prediction boxes.*
 
 Hi, I'm Nikolas Platon. In the explorer I can click any dot to pick a real test patient. Here is each model's predicted chance of readmission for this patient, and whether it was right.
 

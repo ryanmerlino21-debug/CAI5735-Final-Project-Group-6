@@ -57,18 +57,18 @@
     p.append(settingsBar());
 
     const metrics = h(`<div id="exMetrics"></div>`);
-    const filt = panel("ex-filters", "1. Filter the patients", `<button class="btn" id="exClear">Clear filters</button>`);
-    const cm = panel("ex-cm", "2. Confusion matrix");
-    const roc = panel("ex-roc", "3. ROC curve (click to set the threshold)");
-    const risk = panel("ex-risk", "4. Predicted risk (click to set the threshold)");
-    const strip = panel("ex-strip", "5. Every test patient (click a dot to pick one)", `<button class="btn" id="exRand">Random patient</button>`);
-    const pt = panel("ex-patient", "6. The selected patient");
+    const filt = panel("ex-filters", "Filter the patients", `<button class="btn" id="exClear">Clear filters</button>`);
+    const cm = panel("ex-cm", "Confusion matrix");
+    const roc = panel("ex-roc", "ROC curve (click to set the threshold)");
+    const risk = panel("ex-risk", "Predicted risk (click to set the threshold)");
+    const strip = panel("ex-strip", "Every test patient (click a dot to pick one)", `<button class="btn" id="exRand">Random patient</button>`);
+    const pt = panel("ex-patient", "The selected patient");
     $(".ex-body", roc).innerHTML = `<div class="cbox" style="height:300px"><canvas></canvas></div>`;
     $(".ex-body", risk).innerHTML = `<div class="cbox" style="height:300px"><canvas></canvas></div>`;
     $(".ex-body", strip).innerHTML = `<div class="cbox" style="height:300px"><canvas></canvas></div>`;
-    const rowA = h(`<div class="ex-grid2"></div>`), rc = h(`<div></div>`); rc.append(cm, roc); rowA.append(filt, rc);
+    const rowA = h(`<div class="ex-grid2"></div>`); rowA.append(cm, roc);
     const rowB = h(`<div class="ex-grid2"></div>`); rowB.append(risk, strip);
-    p.append(metrics, rowA, rowB, pt);
+    p.append(metrics, filt, rowA, rowB, pt);
 
     /* clear / reset / random / tour buttons */
     const clearAll = () => { FEATS.forEach(f => SEL[f].clear()); X.cell = null; };
@@ -120,7 +120,7 @@
         const bars = sp.labels.map((l, b) => `<div class="fb ${SEL[f].has(b) ? "on" : ""}" data-f="${f}" data-b="${b}" title="${axT(f)}: ${l} (${cur[b]} of ${tot_[b]} patients shown)"><div class="fcol"><i class="fall" style="height:${tot_[b] / mx * 100}%"></i><i class="fnow" style="height:${cur[b] / mx * 100}%"></i></div><span>${l}</span>${b === pb ? '<em title="selected patient">▲</em>' : "<em></em>"}</div>`).join("");
         return `<div class="fvar"><div class="ftitle">${axT(f)}</div><div class="fbars" style="grid-template-columns:repeat(${nb},1fr)">${bars}</div></div>`;
       }).join("");
-      body(filt).innerHTML = `<div class="flegend"><span class="lg all"></span>all test patients <span class="lg now"></span>patients shown</div>${f1}`;
+      body(filt).innerHTML = `<div class="flegend"><span class="lg all"></span>all test patients <span class="lg now"></span>patients shown</div><div class="fgrid">${f1}</div>`;
       $$(".fb", filt).forEach(b => b.onclick = () => { const f = b.dataset.f, k = +b.dataset.b; if (SEL[f].has(k)) SEL[f].delete(k); else SEL[f].add(k); refresh(); });
       how(filt, "Each small chart counts the test patients in each range of one variable (bar heights are counts of patients). Click bars to keep only those ranges. Light bars are all 750 test patients, dark bars are the patients still shown. The triangle marks the bar your selected patient is in.");
       says(filt, filtersOn() ? `You kept ${C.idx.length} of ${tot} patients (${pct(C.idx.length / tot, 0)}). Their readmission rate is ${pc(rate)}, compared with ${pc(all)} for everyone. ${C.idx.length < 30 ? "This is a small group, so the numbers below are noisy." : "Compare the matrix and curves with the unfiltered view to see if the model works better or worse for this group."}` : "No filters yet, so all 750 test patients are shown. Click a few bars, such as the highest number of diagnoses, and watch every other panel change.");
@@ -132,7 +132,7 @@
         <div class="lab">Actual<br>not readm.</div>${cell("tn", c.tn, "TRUE NEGATIVE", "good")}${cell("fp", c.fp, "FALSE POSITIVE", "bad")}
         <div class="lab">Actual<br>readmitted</div>${cell("fn", c.fn, "FALSE NEGATIVE", "bad")}${cell("tp", c.tp, "TRUE POSITIVE", "good")}</div>`;
       $$(".cell", cm).forEach(b => b.onclick = () => { X.cell = X.cell === b.dataset.c ? null : b.dataset.c; refresh(); });
-      how(cm, "Each box counts test patients (the number of patients) for the selected model at the current threshold. Teal boxes are correct and coral boxes are mistakes. Click a box to highlight those patients in chart 5. The outlined box is where the selected patient falls.");
+      how(cm, "Each box counts test patients (the number of patients) for the selected model at the current threshold. Teal boxes are correct and coral boxes are mistakes. Click a box to highlight those patients in the “Every test patient” chart. The outlined box is where the selected patient falls.");
       says(cm, C.idx.length ? `At a threshold of ${S.thr.toFixed(2)}, the ${S.model.toLowerCase()} caught ${c.tp} of ${P_} readmitted patients (${pc(c.sens)}) and cleared ${c.tn} of ${N_} patients who did not return (${pc(c.spec)}). It missed ${c.fn} readmissions and raised ${c.fp} false alarms.` : "No patients match the filters.");
 
       /* 3. ROC */

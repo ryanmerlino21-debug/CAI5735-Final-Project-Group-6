@@ -140,7 +140,7 @@ function section(title, ...kids) { const s = h(`<section class="block"><h3>${tit
 const para = t => h(`<p>${t}</p>`);
 const lede = t => h(`<p class="lede">${t}</p>`);
 function titlebar(t, sub) { return h(`<div class="titlebar"><h2>${t}</h2><p>${sub}</p><span class="tip">💡 Use the buttons above each chart to switch how it is drawn.</span></div>`); }
-function kpis(items) { return h(`<div class="kpis">${items.map(([l, v, s]) => `<div class="kpi"><small>${l}</small><b>${v}</b><span>${s || ""}</span></div>`).join("")}</div>`); }
+function kpis(items) { return h(`<div class="kpis k${items.length}">${items.map(([l, v, s]) => `<div class="kpi"><small>${l}</small><b>${v}</b><span>${s || ""}</span></div>`).join("")}</div>`); }
 
 /* ---------------- shared global controls (model + threshold) ---------------- */
 function settingsBar() {
@@ -177,7 +177,7 @@ const VAR_OPTS = FEATS.map(f => [f, LBL[f]]);
 
 /* axis titles with units, applied by mk() whenever a chart does not set its own */
 const AXES = {
-  "Model comparison": st => st.ch === "radar" ? { t: "Score on each metric (0 to 1)" } : st.ch === "bar" ? { x: METRIC_T[st.metric], y: "Model" } : st.ch === "dots" ? { x: "Model", y: METRIC_T[st.metric] } : null,
+  "Model comparison": st => st.ch === "radar" ? { t: "Score on each metric (0 to 1)" } : st.ch === "bar" ? { x: METRIC_T[st.metric], y: "Model" } : st.ch === "dots" ? { x: `${METRIC_T[st.metric]}, axis zoomed in`, y: "Model" } : null,
   "Outcome groups": st => st.ch === "bar" ? { x: "Outcome group", y: "Number of stays (count)" } : { t: "Number of stays in each group (count)" },
   "Split sizes and readmission rate": () => ({ y: "Data set", x: undefined }),
   "Distribution": () => ({ y: "Share of group (% of stays)" }),
@@ -283,7 +283,7 @@ const SAYS = {
   "Inside the models": st => {
     const T = D.tree, f = T.f[0];
     if (st.v === "lr") { const o = FEATS.map((x, i) => ({ x, or: Math.exp(D.lr.coef[i] / D.lr.scale[i]) })), big = o.slice(0, 5).reduce((a, b) => Math.abs(Math.log(b.or)) > Math.abs(Math.log(a.or)) ? b : a); return `The largest per unit effect among the counts is ${LBL[big.x].toLowerCase()}, with an odds ratio of ${big.or.toFixed(2)}: each extra unit changes the odds of readmission by about ${Math.abs((big.or - 1) * 100).toFixed(0)}%. The prescription variable has an odds ratio of ${o[5].or.toFixed(2)}.`; }
-    return `The tree's first question is "${LBL[FEATS[f]].toLowerCase()} ≤ ${Math.floor(T.t[0] + .5)}?", which splits ${T.n[0].toLocaleString()} training stays into ${T.n[T.l[0]]} and ${T.n[T.r[0]]}. Its leaves range from ${pct(Math.min(...T.p.filter((_, i) => T.l[i] === -1)), 0)} to ${pct(Math.max(...T.p.filter((_, i) => T.l[i] === -1)), 0)} readmitted, so even the tree's best splits only move the odds a little.`;
+    return `The tree's first question is "${LBL[FEATS[f]].toLowerCase()} ≤ ${Math.floor(T.t[0])}?", which splits ${T.n[0].toLocaleString()} training stays into ${T.n[T.l[0]]} and ${T.n[T.r[0]]}. Its leaves range from ${pct(Math.min(...T.p.filter((_, i) => T.l[i] === -1)), 0)} to ${pct(Math.max(...T.p.filter((_, i) => T.l[i] === -1)), 0)} readmitted, so even the tree's best splits only move the odds a little.`;
   },
   "Bootstrap check of the AUROC": () => BOOT ? `The random forest beat logistic regression in ${pct(BOOT.rfBeatsLr, 0)} of 300 resamples. The middle 95% ranges are ${MODELS.map((m, i) => `${m} ${f3(BOOT.ci[i][0])} to ${f3(BOOT.ci[i][1])}`).join("; ")}. They overlap heavily, so we cannot say one model is truly better than another from this test set.` : "Press the button to see how much the AUROC would change by chance.",
   "Metrics at every threshold": st => {
@@ -381,11 +381,25 @@ function cmpCard() {
       showCanvas(el, true);
       if (st.ch === "radar") return mk(cv, { type: "radar", data: { labels: names, datasets: MODELS.map((m, i) => ({ label: m, data: keys.map(k => get(m, k)), borderColor: MC(i), backgroundColor: MC(i) + "22", pointRadius: 3 })) }, options: { scales: { r: { min: 0, max: 1, ticks: { backdropColor: "transparent" } } } } });
       const vals = MODELS.map(m => get(m, st.metric));
-      if (st.ch === "dots") return mk(cv, { type: "line", data: { labels: MODELS, datasets: [{ data: vals, showLine: false, pointRadius: 11, pointBackgroundColor: MODELS.map((_, i) => MC(i)) }] }, options: { plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 1 } } } });
+      if (st.ch === "dots") {
+        /* one row per model on a shared, zoomed-in axis, with each value written next to its dot and a dashed "no skill" line */
+        const ref = st.metric === "auc" ? [0.5, "coin flip 0.50"] : st.metric === "acc" ? [1 - mean(D.y_test), `always guess no ${f3(1 - mean(D.y_test))}`] : null;
+        const pts = ref ? [...vals, ref[0]] : vals;
+        const lo = Math.max(0, Math.floor((Math.min(...pts) - .02) * 20) / 20), hi = Math.min(1, Math.ceil((Math.max(...pts) + .02) * 20) / 20);
+        const labels = { id: "dotLabels", afterDatasetsDraw(ch) {
+          const { ctx, chartArea: a, scales: { x } } = ch; ctx.save(); ctx.textBaseline = "middle"; ctx.textAlign = "left";
+          if (ref) { const rx = x.getPixelForValue(ref[0]); ctx.strokeStyle = css("--muted"); ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(rx, a.top); ctx.lineTo(rx, a.bottom); ctx.stroke(); ctx.setLineDash([]); ctx.font = `11px ${Chart.defaults.font.family}`; ctx.fillStyle = css("--muted"); ctx.fillText(ref[1], rx + 5, a.top + 8); }
+          ctx.font = `700 12px ${Chart.defaults.font.family}`; ctx.fillStyle = css("--ink");
+          ch.getDatasetMeta(0).data.forEach((p, i) => ctx.fillText(f3(vals[i]), p.x + 16, p.y));
+          ctx.restore();
+        } };
+        return mk(cv, { type: "line", data: { labels: MODELS, datasets: [{ data: vals, showLine: false, pointRadius: 10, pointHoverRadius: 12, pointBackgroundColor: MODELS.map((_, i) => MC(i)), pointBorderColor: css("--paper"), pointBorderWidth: 2 }] },
+          options: { indexAxis: "y", layout: { padding: { right: 48 } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => f3(c.parsed.x) } } }, scales: { x: { min: lo, max: hi, ticks: { stepSize: .05 } }, y: { offset: true, grid: { display: false } } } }, plugins: [labels] });
+      }
       mk(cv, { type: "bar", data: { labels: MODELS, datasets: [{ data: vals, backgroundColor: MODELS.map((_, i) => MC(i)), borderRadius: 8 }] },
         options: { indexAxis: "y", plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => f3(c.parsed.x) } } }, scales: { x: { min: 0, max: 1 } } } });
     },
-    caption: st => st.ch === "radar" ? "Each corner is one metric and each colored shape is a model. A bigger shape is better. The shapes nearly overlap, so no model is clearly ahead." : st.ch === "tab" ? "All six measures for each model in one place." : `Longer bars (or higher dots) are better. ${st.metric === "auc" ? "AUROC does not depend on the threshold." : `This uses a threshold of ${st._t.toFixed(2)}.`} The models are very close, which is part of our finding.`
+    caption: st => st.ch === "radar" ? "Each corner is one metric and each colored shape is a model. A bigger shape is better. The shapes nearly overlap, so no model is clearly ahead." : st.ch === "tab" ? "All six measures for each model in one place." : `${st.ch === "dots" ? "Dots further right are better. The axis is zoomed in to where the scores are, so small gaps are easy to see. Read the numbers next to the dots for the real size of a gap." : "Longer bars are better."} ${st.metric === "auc" ? "AUROC does not depend on the threshold." : `This uses a threshold of ${st._t.toFixed(2)}.`} The models are very close, which is part of our finding.`
   });
 }
 
@@ -427,7 +441,7 @@ PAGES.dataset = () => {
       draw(st, body) {
         const R = rng(st.seed || 3), pool = D.readmitted.map((_, i) => i).filter(i => st.f === "all" || D.readmitted[i] === +st.f);
         const pick = []; while (pick.length < Math.min(+st.n, pool.length)) { const i = pool[Math.floor(R() * pool.length)]; if (!pick.includes(i)) pick.push(i); }
-        body.innerHTML = `<div class="scroll"><table class="dtab"><tr><th>Age</th><th>Gender</th><th>Admission</th>${FEATS.map(f => `<th class="n">${axT(f)}</th>`).join("")}<th>Readmitted?</th></tr>${pick.map(i => `<tr><td>${D.cats.age[i]}</td><td>${D.cats.gender[i]}</td><td>${D.cats.admission_type[i]}</td>${FEATS.map(f => `<td class="n">${f === "diabetes_med" ? (D.data[f][i] ? "Yes" : "No") : D.data[f][i]}</td>`).join("")}<td><span class="tag" style="background:${D.readmitted[i] ? css("--coral") : css("--teal")};color:#fff">${D.readmitted[i] ? "Yes" : "No"}</span></td></tr>`).join("")}</table></div>`;
+        body.innerHTML = `<div class="scroll"><table class="dtab"><tr><th>Age</th><th>Gender</th><th>Admission</th>${FEATS.map(f => `<th class="n">${LBL[f]}</th>`).join("")}<th>Readmitted?</th></tr>${pick.map(i => `<tr><td>${D.cats.age[i]}</td><td>${D.cats.gender[i]}</td><td>${D.cats.admission_type[i]}</td>${FEATS.map(f => `<td class="n">${f === "diabetes_med" ? (D.data[f][i] ? "Yes" : "No") : D.data[f][i]}</td>`).join("")}<td><span class="tag" style="background:${D.readmitted[i] ? css("--coral") : css("--teal")};color:#fff">${D.readmitted[i] ? "Yes" : "No"}</span></td></tr>`).join("")}</table></div>`;
       },
       caption: "Each row is one hospital stay. The first three columns are not used in our models. The last column is what we are trying to predict."
     })));
@@ -566,13 +580,17 @@ PAGES.explore = () => {
       toggles: [{ key: "rows", label: "Show", value: "all", options: [["all", "All pairs"], ["out", "Only vs readmitted"]] }, { key: "num", label: "Numbers", value: "on", options: [["on", "On"], ["off", "Off"]] }],
       draw(st, body) {
         const names = [...FEATS, "readmitted"], cols = names.map(n => n === "readmitted" ? D.readmitted : D.data[n]);
-        const cell = r => { const a = Math.min(1, Math.abs(r) * 1.6); const c = r >= 0 ? css("--coral") : css("--teal"); return `<td style="background:color-mix(in srgb,${c} ${Math.round(a * 100)}%,transparent)" title="r = ${r.toFixed(3)}">${st.num === "on" ? r.toFixed(2) : "&nbsp;&nbsp;"}</td>`; };
+        const cell = (r, self) => {
+          if (self) return `<td class="self" title="A variable compared with itself is always 1">${st.num === "on" ? "1.00" : "&nbsp;&nbsp;"}</td>`;
+          const t = tint(r >= 0 ? "--coral" : "--teal", Math.min(.9, Math.abs(r) * 1.8), "--soft");
+          return `<td style="background:${t.fill};color:${t.text}" title="r = ${r.toFixed(3)}">${st.num === "on" ? r.toFixed(2) : "&nbsp;&nbsp;"}</td>`;
+        };
         let html;
-        if (st.rows === "out") html = `<table class="heat"><tr><th></th><th>Correlation with readmitted (r, -1 to 1)</th></tr>${FEATS.map((f, i) => `<tr><th style="text-align:right">${LBL[f]}</th>${cell(pearson(cols[i], D.readmitted))}</tr>`).join("")}</table>`;
-        else html = `<div class="scroll"><table class="heat"><tr><th>Correlation (r, -1 to 1)</th>${names.map(n => `<th>${LBL[n]}</th>`).join("")}</tr>${names.map((a, i) => `<tr><th style="text-align:right">${LBL[a]}</th>${names.map((b, j) => cell(i === j ? 1 : pearson(cols[i], cols[j]))).join("")}</tr>`).join("")}</table></div>`;
+        if (st.rows === "out") html = `<table class="heat corr"><tr><th></th><th>Correlation with readmitted (r, -1 to 1)</th></tr>${FEATS.map((f, i) => `<tr><th style="text-align:right">${LBL[f]}</th>${cell(pearson(cols[i], D.readmitted))}</tr>`).join("")}</table>`;
+        else html = `<div class="scroll"><table class="heat corr"><tr><th>Correlation (r, -1 to 1)</th>${names.map(n => `<th>${LBL[n]}</th>`).join("")}</tr>${names.map((a, i) => `<tr><th style="text-align:right">${LBL[a]}</th>${names.map((b, j) => cell(i === j ? 1 : pearson(cols[i], cols[j]), i === j)).join("")}</tr>`).join("")}</table></div>`;
         body.innerHTML = html;
       },
-      caption: "Coral cells mean the two variables rise together, teal cells mean one rises as the other falls, and darker means stronger. The Readmitted row shows what we care about, and all of those are close to zero. Medications and diagnoses move together, which can make a model's job harder."
+      caption: "Coral cells mean the two variables rise together, teal cells mean one rises as the other falls, and the stronger the color, the stronger the link. Cells with little color are close to zero. The plain diagonal is each variable compared with itself, which is always 1. The Readmitted row shows what we care about, and all of those are close to zero. Medications and diagnoses move together, which can make a model's job harder."
     })));
   p.append(section("Looking at two variables together",
     card({
@@ -581,8 +599,8 @@ PAGES.explore = () => {
         { key: "n", label: "Points", value: "600", options: [["300", "300"], ["600", "600"], ["1500", "1500"]] }, { key: "c", label: "Color by outcome", value: "on", options: [["on", "On"], ["off", "Off"]] }],
       draw(st, cv) {
         const R = rng(7), N = +st.n, mkp = f => { const o = []; for (let i = 0; i < N; i++) if (f(i)) o.push({ x: D.data[st.x][i] + (R() - .5) * .6, y: D.data[st.y][i] + (R() - .5) * .6 }); return o; };
-        const y = D.readmitted, ds = st.c === "on" ? [{ label: "Not readmitted", data: mkp(i => !y[i]), backgroundColor: css("--teal") + "99" }, { label: "Readmitted", data: mkp(i => y[i]), backgroundColor: css("--coral") + "99" }] : [{ label: "Stays", data: mkp(() => true), backgroundColor: css("--violet") + "88" }];
-        mk(cv, { type: "scatter", data: { datasets: ds.map(d => ({ ...d, pointRadius: 3.5 })) }, options: { scales: { x: { title: { display: true, text: axT(st.x) } }, y: { title: { display: true, text: axT(st.y) } } } } });
+        const y = D.readmitted, ds = st.c === "on" ? [{ label: "Not readmitted", data: mkp(i => !y[i]), backgroundColor: css("--teal") + "cc", borderColor: css("--teal") }, { label: "Readmitted", data: mkp(i => y[i]), backgroundColor: css("--coral") + "cc", borderColor: css("--coral") }] : [{ label: "Stays", data: mkp(() => true), backgroundColor: css("--violet") + "cc", borderColor: css("--violet") }];
+        mk(cv, { type: "scatter", data: { datasets: ds.map(d => ({ ...d, pointRadius: 3.5, borderWidth: 1 })) }, options: { scales: { x: { title: { display: true, text: axT(st.x) } }, y: { title: { display: true, text: axT(st.y) } } } } });
       },
       caption: "Each dot is one stay (jittered a little so dots do not stack). If coral and teal dots formed separate clouds, two variables could predict readmission. Here they are mixed together almost completely."
     })));
@@ -602,15 +620,38 @@ PAGES.explore = () => {
   return p;
 };
 
+/* Color helpers: mix a theme color into a background and pick dark or white text, whichever contrasts more. */
+const hexRGB = hex => { const v = parseInt(hex.replace("#", ""), 16); return [v >> 16 & 255, v >> 8 & 255, v & 255]; };
+const lumRGB = c => { const [r, g, b] = c.map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * r + .7152 * g + .0722 * b; };
+const contrastRGB = (a, b) => (Math.max(lumRGB(a), lumRGB(b)) + .05) / (Math.min(lumRGB(a), lumRGB(b)) + .05);
+const TXT_DARK = "#14213d", TXT_LIGHT = "#ffffff";
+function tint(colorVar, k, baseVar) {
+  const c = hexRGB(css(colorVar)), b = hexRGB(css(baseVar)), fill = c.map((v, i) => Math.round(v * k + b[i] * (1 - k)));
+  return { fill: `rgb(${fill})`, text: contrastRGB(fill, hexRGB(TXT_DARK)) >= contrastRGB(fill, hexRGB(TXT_LIGHT)) ? TXT_DARK : TXT_LIGHT };
+}
+
+/* The tree is drawn sideways: the first question is on the left, "yes" branches go up and "no" branches go down,
+   so its 5 levels fit across the card instead of its 13 leaves. Text color is picked per box for contrast. */
 function treeSVG() {
-  const T = D.tree, W = 128, H = 78; let leaf = 0, maxD = 0; const pos = {};
-  const walk = (n, d) => { maxD = Math.max(maxD, d); if (T.l[n] === -1) { pos[n] = { x: leaf++ * W + W / 2, d }; return; } walk(T.l[n], d + 1); walk(T.r[n], d + 1); pos[n] = { x: (pos[T.l[n]].x + pos[T.r[n]].x) / 2, d }; };
+  const T = D.tree, BW = 136, BH = 32, ROW = 38, PAD = 4; let leaf = 0, maxD = 0; const pos = {};
+  const walk = (n, d) => { maxD = Math.max(maxD, d); if (T.l[n] === -1) { pos[n] = { y: PAD + leaf++ * ROW + ROW / 2, d }; return; } walk(T.l[n], d + 1); walk(T.r[n], d + 1); pos[n] = { y: (pos[T.l[n]].y + pos[T.r[n]].y) / 2, d }; };
   walk(0, 0);
-  const wd = leaf * W, ht = (maxD + 1) * H + 20, col = p => `color-mix(in srgb,${p >= .4 ? css("--coral") : css("--teal")} ${Math.min(85, 20 + Math.abs(p - .4) * 400)}%,${css("--paper")})`;
+  const wd = 820, step = (wd - BW) / Math.max(1, maxD), ht = leaf * ROW + PAD * 2, X = n => pos[n].d * step;
+  const box = p => tint(p >= .4 ? "--coral" : "--teal", Math.min(85, 20 + Math.abs(p - .4) * 400) / 100, "--paper");
   let edges = "", nodes = "";
-  T.l.forEach((l, n) => { if (l === -1) return; [[l, "yes"], [T.r[n], "no"]].forEach(([c, lab]) => { edges += `<line x1="${pos[n].x}" y1="${pos[n].d * H + 44}" x2="${pos[c].x}" y2="${pos[c].d * H + 6}" stroke="${css("--line")}" stroke-width="2"/><text x="${(pos[n].x + pos[c].x) / 2 + (lab === "yes" ? -10 : 10)}" y="${(pos[n].d * H + 44 + pos[c].d * H + 6) / 2}" text-anchor="middle" style="font-size:9px">${lab}</text>`; }); });
-  T.l.forEach((l, n) => { const q = pos[n], isLeaf = l === -1, f = T.f[n], thr = T.t[n]; const cond = isLeaf ? `${pct(T.p[n], 0)} readmitted` : f === 5 ? "Diabetes med?" : `${LBL[FEATS[f]]} ≤ ${Math.floor(thr + .5)}?`; nodes += `<g><rect x="${q.x - 56}" y="${q.d * H + 6}" width="112" height="38" rx="9" fill="${col(T.p[n])}" stroke="${css("--line")}"/><text x="${q.x}" y="${q.d * H + 22}" text-anchor="middle" style="fill:${css("--ink")};font-weight:700;font-size:10.5px">${cond}</text><text x="${q.x}" y="${q.d * H + 36}" text-anchor="middle" style="font-size:9.5px">n = ${T.n[n]}${isLeaf ? "" : " · " + pct(T.p[n], 0)}</text></g>`; });
-  return `<div class="scroll"><svg viewBox="0 0 ${wd} ${ht}" width="${wd}" height="${ht}">${edges}${nodes}</svg></div>`;
+  T.l.forEach((l, n) => {
+    if (l === -1) return;
+    [[l, "yes"], [T.r[n], "no"]].forEach(([c, lab]) => {
+      const x1 = X(n) + BW, y1 = pos[n].y, x2 = X(c), y2 = pos[c].y, xm = (x1 + x2) / 2;
+      edges += `<path d="M${x1},${y1} C${xm},${y1} ${xm},${y2} ${x2},${y2}" fill="none" stroke="${css("--line")}" stroke-width="2"/><text x="${xm}" y="${(y1 + y2) / 2 + (lab === "yes" ? -5 : 11)}" text-anchor="middle" style="font-size:9.5px;font-weight:600">${lab}</text>`;
+    });
+  });
+  T.l.forEach((l, n) => {
+    const isLeaf = l === -1, f = T.f[n], x = X(n), y = pos[n].y, b = box(T.p[n]);
+    const cond = isLeaf ? `${pct(T.p[n], 0)} readmitted` : f === 5 ? "No diabetes med?" : `${LBL[FEATS[f]]} ≤ ${Math.floor(T.t[n])}?`;
+    nodes += `<g><rect x="${x}" y="${y - BH / 2}" width="${BW}" height="${BH}" rx="8" fill="${b.fill}" stroke="${css("--line")}"/><text x="${x + BW / 2}" y="${y - 2}" text-anchor="middle" style="fill:${b.text};font-weight:700;font-size:10.5px">${cond}</text><text x="${x + BW / 2}" y="${y + 10}" text-anchor="middle" style="fill:${b.text};opacity:.85;font-size:9.5px">n = ${T.n[n]}${isLeaf ? "" : " · " + pct(T.p[n], 0)}</text></g>`;
+  });
+  return `<div class="scroll"><svg viewBox="0 0 ${wd} ${ht}" width="100%" style="display:block;min-width:600px;max-width:${wd}px;height:auto;margin:0 auto" role="img" aria-label="Decision tree diagram">${edges}${nodes}</svg></div>`;
 }
 
 /* ---------- 4. models ---------- */
@@ -703,10 +744,10 @@ PAGES.models = () => {
       title: "Inside the models", kind: "html", toggles: [{ key: "v", label: "Show", value: "tree", options: [["tree", "Decision tree rules"], ["diag", "Tree diagram"], ["lr", "Logistic regression weights"]] }],
       draw(st, body) {
         if (st.v === "diag") return void (body.innerHTML = treeSVG());
-        if (st.v === "tree") body.innerHTML = `<pre>${D.tree_text.replace(/</g, "&lt;")}</pre>`;
+        if (st.v === "tree") { const L = D.tree_text.replace(/\s+$/, "").split("\n"), cut = L.findIndex((l, i) => i > 0 && l.startsWith("|--- ")), esc = a => a.join("\n").replace(/</g, "&lt;"); body.innerHTML = cut > 0 ? `<div class="rules2"><pre>${esc(L.slice(0, cut))}</pre><pre>${esc(L.slice(cut))}</pre></div>` : `<pre>${esc(L)}</pre>`; }
         else body.innerHTML = `<div class="scroll"><table><tr><th>Variable</th><th class="n">Weight (per 1 SD)</th><th class="n">Odds ratio per 1 unit</th></tr>${FEATS.map((f, i) => `<tr><td>${LBL[f]}</td><td class="n">${D.lr.coef[i].toFixed(3)}</td><td class="n">${Math.exp(D.lr.coef[i] / D.lr.scale[i]).toFixed(3)}</td></tr>`).join("")}<tr><td>Intercept</td><td class="n">${D.lr.intercept.toFixed(3)}</td><td></td></tr></table></div>`;
       },
-      caption: st => st.v === "diag" ? "Each box is a question or a final answer. Follow the left branch when the answer is yes and the right branch when it is no. Box color shows the share of readmitted stays in that group (coral is higher, teal is lower), and n is how many training stays reached the box. Every branch ends near the overall 40%, which is why the tree is a weak predictor." : st.v === "tree" ? "Read from the top. At each line, follow the branch that is true for the patient. The class at the end of a branch is the prediction (0 = not readmitted, 1 = readmitted)." : "An odds ratio of 1.03 means each extra unit of that variable raises the odds of readmission by about 3%. Values close to 1 mean a tiny effect."
+      caption: st => st.v === "diag" ? "Each box is a question or a final answer. Start at the left. Follow the upper branch when the answer is yes and the lower branch when it is no. Box color shows the share of readmitted stays in that group (coral is higher, teal is lower), and n is how many training stays reached the box. Every branch ends near the overall 40%, which is why the tree is a weak predictor." : st.v === "tree" ? "The rules are split at the first question: the left box is for 6 or fewer diagnoses and the right box is for 7 or more. Read each box from the top. At each line, follow the branch that is true for the patient. The class at the end of a branch is the prediction (0 = not readmitted, 1 = readmitted)." : "An odds ratio of 1.03 means each extra unit of that variable raises the odds of readmission by about 3%. Values close to 1 mean a tiny effect."
     })));
   p.append(section("Could the differences just be luck?",
     card({
@@ -939,7 +980,7 @@ const TABS = [["overview", "Research question", "🏠"], ["dataset", "Dataset", 
 function addChips(page) {
   const hs = $$("section.block > h3", page); if (hs.length < 3) return;
   hs.forEach((x, i) => x.id = x.id || `${S.tab}-${i}`);
-  page.querySelector(".titlebar").after(h(`<div class="chips"><b>On this page</b>${hs.map(x => `<a href="#${x.id}" data-jump="${x.id}">${x.textContent}</a>`).join("")}</div>`));
+  page.querySelector(".titlebar").after(h(`<div class="chips"><b>On this page</b><div class="chiplist">${hs.map(x => `<a href="#${x.id}" data-jump="${x.id}">${x.textContent}</a>`).join("")}</div></div>`));
 }
 function show(tab) {
   if (!PAGES[tab]) tab = "overview";
